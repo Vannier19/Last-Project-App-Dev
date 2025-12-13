@@ -13,23 +13,33 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].icon,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].card,
+          borderTopWidth: 0,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        },
       }}>
+      {/* Main screen with custom top navigation */}
       <Tabs.Screen
-        name="index"
+        name="main"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+      {/* Hide other screens from bottom tab bar */}
+      <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="materials" options={{ href: null }} />
+      <Tabs.Screen name="quiz" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }

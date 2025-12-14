@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { signUp } from '@/services/firebase';
+import api from '@/services/api';
 
 export default function RegisterScreen() {
     const router = useRouter();
@@ -17,15 +19,37 @@ export default function RegisterScreen() {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
+        if (!name || !email || !password) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
+        if (password.length < 6) {
+            Alert.alert('Error', 'Password must be at least 6 characters');
+            return;
+        }
+
         setIsLoading(true);
-        // Simulate API call
-        setTimeout(() => {
-            console.log('Register attempt:', name, email, password);
+        try {
+            // 1. Register to Firebase
+            const { user, token } = await signUp(email, password);
+            console.log('✅ Firebase registration success:', user.email);
+
+            // 2. Sync with Backend (will create user in Firestore)
+            await api.syncUser(token);
+            console.log('✅ Backend sync success');
+
+            // 3. Navigate to main app
+            Alert.alert('Success', 'Account created successfully!', [
+                { text: 'OK', onPress: () => router.replace('/(tabs)/main') }
+            ]);
+        } catch (error: any) {
+            console.error('❌ Registration error:', error);
+            Alert.alert('Registration Failed', error.message || 'An error occurred');
+        } finally {
             setIsLoading(false);
-            // Navigate to tabs mainly for demo purposes, or back to login
-            router.replace('/(tabs)');
-        }, 1000);
+        }
     };
 
     return (

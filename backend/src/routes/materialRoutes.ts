@@ -5,8 +5,8 @@ import { verifyToken } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Public: Bisa diakses siapa saja (atau pasang verifyToken jika harus login dulu)
-router.get('/', verifyToken, getAllMaterials); 
+// Public: Bisa diakses siapa saja tanpa login
+router.get('/', getAllMaterials); 
 
 // Private: Admin only (nanti bisa tambah cek role)
 router.post('/', verifyToken, createMaterial);

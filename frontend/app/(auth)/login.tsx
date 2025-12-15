@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -7,6 +7,8 @@ import { Colors } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { signIn } from '@/services/firebase';
+import api from '@/services/api';
 
 export default function LoginScreen() {
     const colorScheme = useColorScheme();
@@ -18,13 +20,29 @@ export default function LoginScreen() {
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Please fill in all fields');
+            return;
+        }
+
         setLoading(true);
-        // TODO: Implement actual login with backend
-        // For now, navigate to main app
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            // 1. Login to Firebase
+            const { user, token } = await signIn(email, password);
+            console.log('✅ Firebase login success:', user.email);
+
+            // 2. Sync with Backend
+            await api.syncUser(token);
+            console.log('✅ Backend sync success');
+
+            // 3. Navigate to main app
             router.replace('/(tabs)/main');
-        }, 500);
+        } catch (error: any) {
+            console.error('❌ Login error:', error);
+            Alert.alert('Login Failed', error.message || 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

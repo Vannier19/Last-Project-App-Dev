@@ -9,8 +9,6 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 
-import { ScheduleModal } from '@/components/ui/ScheduleModal';
-
 interface QuizRecord {
     key: string;
     topic: string;
@@ -26,7 +24,6 @@ export default function ProfileScreen() {
 
     const [quizHistory, setQuizHistory] = useState<QuizRecord[]>([]);
     const [refreshing, setRefreshing] = useState(false);
-    const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
 
     const loadHistory = useCallback(async () => {
         try {
@@ -111,13 +108,6 @@ export default function ProfileScreen() {
                     </Card>
                 </View>
 
-                {/* Schedule Button */}
-                <Button
-                    title="Schedule Study Session 📅"
-                    onPress={() => setScheduleModalVisible(true)}
-                    style={{ marginTop: 16 }}
-                />
-
                 {/* Quiz History */}
                 <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Recent Activity</Text>
                 {quizHistory.length === 0 ? (
@@ -156,11 +146,6 @@ export default function ProfileScreen() {
                     style={{ marginTop: 24 }}
                 />
             </ScrollView>
-
-            <ScheduleModal
-                visible={scheduleModalVisible}
-                onClose={() => setScheduleModalVisible(false)}
-            />
         </SafeAreaView>
     );
 }

@@ -49,9 +49,11 @@
       "reactCompiler": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "virtual-physics-lab"
+        "projectId": "5cc32635-1668-41fd-9bc2-f608f95b1dfb"
       }
-    }
+    },
+    "owner": "kanata08"
   }
 }

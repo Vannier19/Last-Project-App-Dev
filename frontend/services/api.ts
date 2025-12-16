@@ -1,27 +1,18 @@
-// API Service untuk koneksi ke Backend
-import { Platform } from 'react-native';
+// Firebase Direct API Service (No Express Backend Required)
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  getDocs,
+  arrayUnion
+} from 'firebase/firestore';
+import app, { auth } from './firebase';
 
-// Detect correct API URL based on platform
-const getApiUrl = () => {
-  // Gunakan environment variable jika ada
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  // Fallback untuk development
-  if (__DEV__) {
-    return Platform.select({
-      android: 'http://10.0.2.2:3001/api',  // Android Emulator
-      ios: 'http://localhost:3001/api',      // iOS Simulator
-      default: 'http://localhost:3001/api'   // Web/other
-    });
-  }
-
-  // Production URL
-  return 'https://your-production-api.com/api';
-};
-
-const API_URL = getApiUrl();
+// Initialize Firestore
+const db = getFirestore(app);
 
 interface ApiResponse<T = any> {
   data?: T;
@@ -29,85 +20,134 @@ interface ApiResponse<T = any> {
   error?: string;
 }
 
-class ApiService {
-  private baseURL: string;
-  private token: string | null = null;
-
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
-  }
-
-  setToken(token: string) {
-    this.token = token;
-  }
-
-  clearToken() {
-    this.token = null;
-  }
-
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...(this.token && { Authorization: `Bearer ${this.token}` }),
-      ...options.headers,
-    };
-
+class FirebaseApiService {
+  // Auth: Sync user to Firestore
+  async syncUser(token: string): Promise<ApiResponse> {
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No authenticated user');
       }
 
-      return data;
-    } catch (error) {
-      console.error('API Error:', error);
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        // Create new user document
+        await setDoc(userRef, {
+          email: user.email,
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || '',
+          role: 'student',
+          createdAt: new Date().toISOString(),
+          progress: {
+            completedMaterials: [],
+            quizScores: {},
+            labStatus: {}
+          }
+        });
+      }
+
+      return { message: 'User synced successfully' };
+    } catch (error: any) {
+      console.error('Sync user error:', error);
       throw error;
     }
   }
 
-  // Auth endpoints
-  async syncUser(token: string) {
-    this.setToken(token);
-    return this.request('/auth/sync', {
-      method: 'POST',
-    });
+  // Materials: Get all materials
+  async getMaterials(): Promise<ApiResponse> {
+    try {
+      const materialsRef = collection(db, 'materials');
+      const snapshot = await getDocs(materialsRef);
+
+      const materials = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      return { data: materials };
+    } catch (error: any) {
+      console.error('Get materials error:', error);
+      throw error;
+    }
   }
 
-  // Materials endpoints
-  async getMaterials() {
-    return this.request('/materials');
+  // Materials: Get material by ID
+  async getMaterialById(id: string): Promise<ApiResponse> {
+    try {
+      const materialRef = doc(db, 'materials', id);
+      const materialDoc = await getDoc(materialRef);
+
+      if (!materialDoc.exists()) {
+        throw new Error('Material not found');
+      }
+
+      return { data: { id: materialDoc.id, ...materialDoc.data() } };
+    } catch (error: any) {
+      console.error('Get material error:', error);
+      throw error;
+    }
   }
 
-  async getMaterialById(id: string) {
-    return this.request(`/materials/${id}`);
-  }
-
-  // Progress endpoints
+  // Progress: Save quiz progress
   async saveQuizProgress(data: {
     materialId: string;
     score: number;
     answers: any[];
-  }) {
-    return this.request('/progress/quiz', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+  }): Promise<ApiResponse> {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No authenticated user');
+      }
+
+      const userRef = doc(db, 'users', user.uid);
+
+      await updateDoc(userRef, {
+        [`progress.quizScores.${data.materialId}`]: data.score,
+        'progress.completedMaterials': arrayUnion(data.materialId)
+      });
+
+      return { message: 'Progress saved successfully' };
+    } catch (error: any) {
+      console.error('Save progress error:', error);
+      throw error;
+    }
   }
 
-  async getProgress() {
-    return this.request('/progress');
+  // Progress: Get user progress
+  async getProgress(): Promise<ApiResponse> {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No authenticated user');
+      }
+
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        return { data: { completedMaterials: [], quizScores: {}, labStatus: {} } };
+      }
+
+      const userData = userDoc.data();
+      return { data: userData.progress || { completedMaterials: [], quizScores: {}, labStatus: {} } };
+    } catch (error: any) {
+      console.error('Get progress error:', error);
+      throw error;
+    }
+  }
+
+  // Helper: Set token (for compatibility, not needed with Firebase)
+  setToken(token: string) {
+    // Not needed with Firebase - auth is handled automatically
+  }
+
+  clearToken() {
+    // Not needed with Firebase
   }
 }
 
-export const api = new ApiService(API_URL);
+export const api = new FirebaseApiService();
 export default api;

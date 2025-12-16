@@ -9,6 +9,10 @@ build/
 .expo/
 web-build/
 
+# --- Documentation (Local Only) ---
+docs/
+
+
 # --- Environment Variables & Secrets (SANGAT PENTING) ---
 .env
 *.env

@@ -1,13 +1,22 @@
 // Firebase Configuration untuk Frontend
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
+import {
+  getAuth,
+  initializeAuth,
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  User
+  GoogleAuthProvider,
+  signInWithCredential,
+  signInWithPopup,
+  User,
+  Auth
 } from 'firebase/auth';
+// @ts-ignore - React Native specific import
+import { getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 // Firebase Config dari Environment Variables
 // Pastikan sudah setting di .env file
@@ -22,7 +31,17 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+
+// Platform-specific auth initialization
+let auth: Auth;
+if (Platform.OS === 'web') {
+  auth = getAuth(app);
+} else {
+  // React Native: use initializeAuth with AsyncStorage persistence
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
+}
 
 // Auth Functions
 export const signIn = async (email: string, password: string) => {
@@ -61,5 +80,5 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
 
-export { auth };
+export { auth, GoogleAuthProvider, signInWithCredential, signInWithPopup };
 export default app;

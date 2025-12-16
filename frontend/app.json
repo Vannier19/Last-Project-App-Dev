@@ -42,12 +42,6 @@
             "backgroundColor": "#1e1b4b"
           }
         }
-      ],
-      [
-        "expo-calendar",
-        {
-          "calendarPermission": "The app needs to access your calendar to add study events."
-        }
       ]
     ],
     "experiments": {

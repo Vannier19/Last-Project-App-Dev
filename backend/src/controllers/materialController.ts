@@ -1,8 +1,6 @@
 // backend/src/controllers/materialController.ts
 import { Request, Response } from 'express';
-import * as admin from 'firebase-admin';
-
-const db = admin.firestore();
+import { db } from '../config/firebase';
 
 // GET: Ambil semua materi untuk Sidebar
 export const getAllMaterials = async (req: Request, res: Response) => {
@@ -19,11 +17,11 @@ export const getAllMaterials = async (req: Request, res: Response) => {
 export const createMaterial = async (req: Request, res: Response) => {
     try {
         const { title, content, order } = req.body;
-        const newDoc = await db.collection('materials').add({ 
-            title, 
-            content, 
+        const newDoc = await db.collection('materials').add({
+            title,
+            content,
             order,
-            createdAt: new Date() 
+            createdAt: new Date()
         });
         res.status(201).json({ id: newDoc.id, message: "Materi berhasil dibuat" });
     } catch (error) {

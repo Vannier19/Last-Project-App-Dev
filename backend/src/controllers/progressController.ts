@@ -1,8 +1,6 @@
 import { Response } from 'express';
-import * as admin from 'firebase-admin';
-import { AuthRequest } from '../middleware/authMiddleware'; // Import interface request custom kita
-
-const db = admin.firestore();
+import { AuthRequest } from '../middleware/authMiddleware';
+import { db, admin } from '../config/firebase';
 
 // 1. GET: Ambil Progress User Saat Ini
 export const getUserProgress = async (req: AuthRequest, res: Response) => {
@@ -37,7 +35,7 @@ export const completeMaterial = async (req: AuthRequest, res: Response) => {
         if (!uid) return res.status(401).json({ message: "Unauthorized" });
 
         const docRef = db.collection('progress').doc(uid);
-        
+
         // Gunakan arrayUnion agar tidak duplikat
         await docRef.set({
             userId: uid,
@@ -64,7 +62,7 @@ export const submitQuizScore = async (req: AuthRequest, res: Response) => {
         // Syntax: "quizScores.ID_KUIS": NILAI
         await docRef.set({
             userId: uid,
-            [`quizScores.${quizId}`]: score, 
+            [`quizScores.${quizId}`]: score,
             lastUpdated: new Date()
         }, { merge: true });
 

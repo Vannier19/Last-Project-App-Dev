@@ -1,8 +1,6 @@
 import { Response } from 'express';
-import * as admin from 'firebase-admin';
 import { AuthRequest } from '../middleware/authMiddleware';
-
-const db = admin.firestore();
+import { db } from '../config/firebase';
 
 // Dipanggil setelah Frontend berhasil login Google & dapet Token
 export const syncUser = async (req: AuthRequest, res: Response) => {

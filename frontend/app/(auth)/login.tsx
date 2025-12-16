@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
-import { signIn } from '@/services/firebase';
+import { signIn, auth, GoogleAuthProvider, signInWithPopup, signInWithCredential } from '@/services/firebase';
 import api from '@/services/api';
+
+// Complete auth session for web
+if (Platform.OS === 'web') {
+    // No need for WebBrowser on web
+} else {
+    WebBrowser.maybeCompleteAuthSession();
+}
 
 export default function LoginScreen() {
     const colorScheme = useColorScheme();
@@ -18,6 +27,76 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // For native (iOS/Android) Google Sign-In
+    const [request, response, promptAsync] = Google.useAuthRequest({
+        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    });
+
+    // Handle native Google auth response
+    useEffect(() => {
+        if (response?.type === 'success') {
+            const { id_token } = response.params;
+            if (id_token) {
+                const credential = GoogleAuthProvider.credential(id_token);
+                handleNativeGoogleSignIn(credential);
+            } else if (response.authentication?.idToken) {
+                const credential = GoogleAuthProvider.credential(response.authentication.idToken);
+                handleNativeGoogleSignIn(credential);
+            } else {
+                Alert.alert('Error', 'Could not get ID token from Google');
+            }
+        }
+    }, [response]);
+
+    // Native (iOS/Android) Google Sign-In handler
+    const handleNativeGoogleSignIn = async (credential: any) => {
+        setLoading(true);
+        try {
+            const userCredential = await signInWithCredential(auth, credential);
+            const token = await userCredential.user.getIdToken();
+            console.log('✅ Google Firebase login success:', userCredential.user.email);
+
+            await api.syncUser(token);
+            console.log('✅ Backend sync success');
+
+            router.replace('/(tabs)/main');
+        } catch (error: any) {
+            console.error('❌ Google Login error:', error);
+            Alert.alert('Google Login Failed', error.message || 'An error occurred');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Platform-specific Google Sign-In
+    const handleGoogleSignIn = async () => {
+        if (Platform.OS === 'web') {
+            // Web: Use signInWithPopup
+            setLoading(true);
+            try {
+                const provider = new GoogleAuthProvider();
+                const result = await signInWithPopup(auth, provider);
+                const token = await result.user.getIdToken();
+                console.log('✅ Google Firebase login success:', result.user.email);
+
+                await api.syncUser(token);
+                console.log('✅ Backend sync success');
+
+                router.replace('/(tabs)/main');
+            } catch (error: any) {
+                console.error('❌ Google Login error:', error);
+                Alert.alert('Google Login Failed', error.message || 'An error occurred');
+            } finally {
+                setLoading(false);
+            }
+        } else {
+            // Native (iOS/Android): Use expo-auth-session
+            promptAsync();
+        }
+    };
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -78,6 +157,19 @@ export default function LoginScreen() {
                             onPress={handleLogin}
                             disabled={loading}
                             style={{ marginTop: 16 }}
+                        />
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
+                            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#444' : '#ccc' }} />
+                            <Text style={{ marginHorizontal: 10, color: isDark ? '#888' : '#666' }}>OR</Text>
+                            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#444' : '#ccc' }} />
+                        </View>
+
+                        <Button
+                            title="Sign in with Google"
+                            onPress={handleGoogleSignIn}
+                            disabled={loading}
+                            style={{ backgroundColor: '#DB4437' }} // Google Red
                         />
                     </Card>
 

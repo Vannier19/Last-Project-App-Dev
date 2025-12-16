@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { auth, signOut, getCurrentUser } from '@/services/firebase';
 
 interface QuizRecord {
     key: string;
@@ -24,6 +25,16 @@ export default function ProfileScreen() {
 
     const [quizHistory, setQuizHistory] = useState<QuizRecord[]>([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [userEmail, setUserEmail] = useState<string>('');
+    const [userName, setUserName] = useState<string>('');
+
+    useEffect(() => {
+        const user = getCurrentUser();
+        if (user) {
+            setUserEmail(user.email || 'No email');
+            setUserName(user.displayName || user.email?.split('@')[0] || 'User');
+        }
+    }, []);
 
     const loadHistory = useCallback(async () => {
         try {
@@ -52,10 +63,14 @@ export default function ProfileScreen() {
         setRefreshing(false);
     }, [loadHistory]);
 
-    const handleLogout = () => {
-        // Future: Clear auth token from context/storage
-        // For now, just navigate back to login
-        router.replace('/(auth)/login');
+    const handleLogout = async () => {
+        try {
+            await signOut();
+            router.replace('/(auth)/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+            router.replace('/(auth)/login');
+        }
     };
 
     const formatDate = (dateString: string) => {
@@ -83,13 +98,13 @@ export default function ProfileScreen() {
                     <Text style={[styles.title, isDark && styles.textDark]}>Profile</Text>
                 </View>
 
-                {/* User Info Card (Placeholder - will be from AuthContext later) */}
+                {/* User Info Card */}
                 <Card style={styles.userCard}>
                     <View style={styles.avatarContainer}>
                         <IconSymbol name="person.circle.fill" size={60} color={Colors[colorScheme ?? 'light'].tint} />
                     </View>
-                    <Text style={[styles.userName, isDark && styles.textDark]}>Physics Student</Text>
-                    <Text style={[styles.userEmail, isDark && styles.textSecondaryDark]}>student@example.com</Text>
+                    <Text style={[styles.userName, isDark && styles.textDark]}>{userName || 'User'}</Text>
+                    <Text style={[styles.userEmail, isDark && styles.textSecondaryDark]}>{userEmail || 'No email'}</Text>
                 </Card>
 
                 {/* Stats */}

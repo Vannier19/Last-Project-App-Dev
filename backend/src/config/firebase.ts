@@ -1,27 +1,24 @@
 import * as admin from 'firebase-admin';
+import * as dotenv from 'dotenv';
 
-// Initialize Firebase Admin SDK
-// Firebase Functions/Cloud Run automatically provides credentials
-// No need to manually load serviceAccountKey.json
+dotenv.config();
 
 let db: admin.firestore.Firestore;
 
 try {
-    // Check if app is already initialized to prevent 'app-already-exists' error
     if (!admin.apps.length) {
-        // Initialize without credentials - uses Application Default Credentials
+        // Initialize Firebase
+        // This will automatically use GOOGLE_APPLICATION_CREDENTIALS from .env
+        // or Default Application Credentials (ADC) on Google Cloud
         admin.initializeApp();
-        console.log('✅ Firebase Admin SDK initialized successfully');
+
+        console.log('🔥 Firebase Connected');
     }
 
-    // Get Firestore instance
     db = admin.firestore();
 
 } catch (error) {
     console.error("❌ Firebase Initialization Error:", error);
-    // Ensure db is defined to prevent "cannot read property of undefined" immediate crashes at import time,
-    // although it will crash at usage time.
-    // Casting to any to avoid strict typing issues here if we accept it might fail
     db = {} as any;
 }
 

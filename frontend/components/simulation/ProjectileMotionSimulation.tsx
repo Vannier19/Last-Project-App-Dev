@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, useWindowDimensions } from 'react-native';
 import { AnalysisPanel } from './AnalysisPanel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, runOnJS, cancelAnimation, useDerivedValue } from 'react-native-reanimated';
 import { Image } from 'expo-image';
@@ -13,13 +13,15 @@ export function ProjectileMotionSimulation() {
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? 'light';
     const isDark = theme === 'dark';
+    const { width } = useWindowDimensions();
+    const isWide = width > 768;
 
     const [velocity, setVelocity] = useState('20');
     const [angle, setAngle] = useState('45');
     const [isPlaying, setIsPlaying] = useState(false);
 
     const GRAVITY = 9.8;
-    const METER_TO_PIXEL = 5; // Scale
+    const METER_TO_PIXEL = 5;
 
     // Shared Values
     const time = useSharedValue(0);
@@ -102,6 +104,75 @@ export function ProjectileMotionSimulation() {
         };
     });
 
+    // Desktop: Side-by-side layout
+    if (isWide) {
+        return (
+            <View style={styles.wideContainer}>
+                {/* Left Panel - Controls & Analysis */}
+                <View style={styles.leftPanel}>
+                    <Card style={styles.controlPanelWide}>
+                        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Parameters</Text>
+                        <View style={styles.inputsRowWide}>
+                            <Input
+                                containerStyle={styles.inputFlex}
+                                label="v₀ [m/s]"
+                                keyboardType="numeric"
+                                value={velocity}
+                                onChangeText={setVelocity}
+                                editable={!isPlaying}
+                            />
+                            <Input
+                                containerStyle={styles.inputFlex}
+                                label="θ [deg]"
+                                keyboardType="numeric"
+                                value={angle}
+                                onChangeText={setAngle}
+                                editable={!isPlaying}
+                            />
+                        </View>
+
+                        <View style={styles.controlsRowWide}>
+                            <Button
+                                title={isPlaying ? "Pause" : "Fire"}
+                                onPress={startSimulation}
+                                style={{ flex: 1, marginRight: 8 }}
+                            />
+                            <Button
+                                title="Reset"
+                                variant="secondary"
+                                onPress={resetSimulation}
+                                style={{ flex: 1 }}
+                            />
+                        </View>
+                    </Card>
+
+                    <AnalysisPanel
+                        time={time}
+                        posX={posX}
+                        posY={posY}
+                        velX={velX}
+                        velY={velY}
+                    />
+                </View>
+
+                {/* Right Panel - Simulation Area */}
+                <View style={styles.rightPanel}>
+                    <View style={[styles.trackContainerWide, isDark && styles.trackContainerDark]}>
+                        <View style={styles.ground} />
+                        <Animated.View style={[styles.object, animatedStyle]}>
+                            <Image
+                                source={require('@/assets/images/parabola.png')}
+                                style={styles.objImage}
+                                contentFit="contain"
+                            />
+                        </Animated.View>
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    // Mobile: Stacked layout (original)
     return (
         <View style={styles.container}>
             <Card style={styles.controlPanel}>
@@ -163,6 +234,7 @@ export function ProjectileMotionSimulation() {
 }
 
 const styles = StyleSheet.create({
+    // Mobile Layout
     container: {
         gap: 20,
     },
@@ -184,9 +256,9 @@ const styles = StyleSheet.create({
         height: 250,
         backgroundColor: Colors.light.background,
         borderRadius: 20,
-        justifyContent: 'flex-end', // Start from bottom-left
+        justifyContent: 'flex-end',
         paddingLeft: 20,
-        paddingBottom: 20, // Ground level offset
+        paddingBottom: 20,
         overflow: 'hidden',
         shadowColor: Colors.light.border,
         shadowOffset: { width: 4, height: 4 },
@@ -197,6 +269,56 @@ const styles = StyleSheet.create({
     trackContainerDark: {
         backgroundColor: Colors.dark.background,
     },
+    // Desktop Layout
+    wideContainer: {
+        flexDirection: 'row',
+        gap: 24,
+    },
+    leftPanel: {
+        width: 320,
+        gap: 20,
+    },
+    rightPanel: {
+        flex: 1,
+    },
+    controlPanelWide: {
+        padding: 20,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.light.text,
+        marginBottom: 16,
+    },
+    textDark: {
+        color: Colors.dark.text,
+    },
+    inputsRowWide: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    controlsRowWide: {
+        flexDirection: 'row',
+        marginTop: 16,
+    },
+    controlsWide: {
+        marginTop: 20,
+    },
+    trackContainerWide: {
+        height: 400,
+        backgroundColor: Colors.light.background,
+        borderRadius: 20,
+        justifyContent: 'flex-end',
+        paddingLeft: 20,
+        paddingBottom: 20,
+        overflow: 'hidden',
+        shadowColor: '#a3b1c6',
+        shadowOffset: { width: 6, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    // Common
     ground: {
         position: 'absolute',
         bottom: 0,

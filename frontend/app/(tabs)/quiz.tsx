@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { HoverableCard } from '@/components/ui/HoverableCard';
 import { quizData } from '@/constants/quizData';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -19,23 +20,72 @@ interface QuizState {
     answers: (string | null)[];
 }
 
-// Topic Selection Component
-const TopicItem = ({ title, subtitle, icon, onPress, isDark }: any) => (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={[styles.topicItem, isDark && styles.topicItemDark]}>
-        <View style={styles.topicIcon}>
-            <IconSymbol name={icon} size={28} color={isDark ? Colors.dark.tint : Colors.light.tint} />
+// Quiz topics data - matching Home style
+const quizTopics = [
+    {
+        key: 'glb',
+        title: 'GLB Quiz',
+        subtitle: 'Uniform Linear Motion',
+        description: 'Test your understanding of motion with constant velocity. 10 multiple choice questions.',
+        icon: 'speedometer',
+        color: '#6366f1',
+        bgColor: 'rgba(99, 102, 241, 0.15)',
+    },
+    {
+        key: 'glbb',
+        title: 'GLBB Quiz',
+        subtitle: 'Accelerated Motion',
+        description: 'Challenge yourself on uniformly accelerated motion concepts. 10 questions to test your knowledge.',
+        icon: 'bolt.car',
+        color: '#8b5cf6',
+        bgColor: 'rgba(139, 92, 246, 0.15)',
+    },
+    {
+        key: 'vertikal',
+        title: 'Vertical Motion Quiz',
+        subtitle: 'Free Fall & Upward Throw',
+        description: 'Answer questions about vertical motion, gravity, and projectile physics.',
+        icon: 'arrow.up.circle',
+        color: '#ec4899',
+        bgColor: 'rgba(236, 72, 153, 0.15)',
+    },
+    {
+        key: 'parabola',
+        title: 'Projectile Motion Quiz',
+        subtitle: 'Parabolic Trajectory',
+        description: 'Test your mastery of projectile motion with angle and velocity calculations.',
+        icon: 'scope',
+        color: '#f59e0b',
+        bgColor: 'rgba(245, 158, 11, 0.15)',
+    },
+];
+
+// Feature Card Component - matching Home style
+const FeatureCard = ({ topic, isDark, isWide, onPress }: any) => (
+    <HoverableCard
+        style={[styles.featureCard, isDark && styles.featureCardDark, isWide && styles.featureCardWide]}
+        onPress={onPress}
+    >
+        <View style={[styles.iconContainer, { backgroundColor: topic.bgColor }]}>
+            <IconSymbol name={topic.icon} size={isWide ? 40 : 32} color={topic.color} />
         </View>
-        <View style={styles.topicTextContainer}>
-            <Text style={[styles.topicTitle, isDark && styles.textDark]}>{title}</Text>
-            <Text style={[styles.topicSubtitle, isDark && styles.textSecondaryDark]}>{subtitle}</Text>
+        <Text style={[styles.featureTitle, isDark && styles.textDark, isWide && styles.featureTitleWide]}>
+            {topic.title}
+        </Text>
+        <Text style={[styles.featureDesc, isDark && styles.textSecondaryDark, isWide && styles.featureDescWide]}>
+            {topic.description}
+        </Text>
+        <View style={styles.cardArrow}>
+            <IconSymbol name="chevron.right" size={20} color={isDark ? '#888' : '#999'} />
         </View>
-        <IconSymbol name="chevron.right" size={20} color={isDark ? '#666' : '#999'} />
-    </TouchableOpacity>
+    </HoverableCard>
 );
 
 export default function QuizScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+    const { width } = useWindowDimensions();
+    const isWide = width > 768;
 
     const [mode, setMode] = useState<QuizMode>('selection');
     const [quizState, setQuizState] = useState<QuizState>({
@@ -112,16 +162,29 @@ export default function QuizScreen() {
     // ---- Render Methods ----
 
     const renderTopicSelection = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.header}>
-                <Text style={[styles.title, isDark && styles.textDark]}>Quizzes</Text>
-                <Text style={[styles.subtitle, isDark && styles.textSecondaryDark]}>Test your physics knowledge</Text>
+        <ScrollView contentContainerStyle={[styles.scrollContent, isWide && styles.scrollContentWide]}>
+            {/* Header Section - matching Home */}
+            <View style={[styles.headerSection, isDark && styles.headerSectionDark]}>
+                <Text style={[styles.title, isDark && styles.textDark, isWide && styles.titleWide]}>
+                    Interactive Quizzes
+                </Text>
+                <Text style={[styles.subtitle, isDark && styles.textSecondaryDark, isWide && styles.subtitleWide]}>
+                    Test your understanding of physics concepts. Choose a topic and challenge yourself!
+                </Text>
             </View>
 
-            <TopicItem title="GLB" subtitle="10 Questions" icon="speedometer" onPress={() => startQuiz('glb')} isDark={isDark} />
-            <TopicItem title="GLBB" subtitle="10 Questions" icon="bolt.car" onPress={() => startQuiz('glbb')} isDark={isDark} />
-            <TopicItem title="Vertical Motion" subtitle="10 Questions" icon="arrow.up.circle" onPress={() => startQuiz('vertikal')} isDark={isDark} />
-            <TopicItem title="Projectile Motion" subtitle="10 Questions" icon="trajectory" onPress={() => startQuiz('parabola')} isDark={isDark} />
+            {/* Cards Grid - matching Home */}
+            <View style={[styles.cardsGrid, isWide && styles.cardsGridWide]}>
+                {quizTopics.map((topic) => (
+                    <FeatureCard
+                        key={topic.key}
+                        topic={topic}
+                        isDark={isDark}
+                        isWide={isWide}
+                        onPress={() => startQuiz(topic.key as TopicKey)}
+                    />
+                ))}
+            </View>
         </ScrollView>
     );
 
@@ -234,18 +297,41 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 100,
     },
-    header: {
-        marginBottom: 24,
+    scrollContentWide: {
+        padding: 40,
+        maxWidth: 1200,
+        alignSelf: 'center',
+        width: '100%',
+    },
+    // Header - matching Home
+    headerSection: {
+        marginBottom: 32,
+        paddingBottom: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.06)',
+    },
+    headerSectionDark: {
+        borderBottomColor: 'rgba(255,255,255,0.06)',
     },
     title: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: 'bold',
         color: Colors.light.text,
+        marginBottom: 12,
+        lineHeight: 34,
+    },
+    titleWide: {
+        fontSize: 36,
+        lineHeight: 46,
     },
     subtitle: {
         fontSize: 16,
         color: Colors.light.icon,
-        marginTop: 4,
+        lineHeight: 24,
+    },
+    subtitleWide: {
+        fontSize: 20,
+        lineHeight: 30,
     },
     textDark: {
         color: Colors.dark.text,
@@ -253,43 +339,75 @@ const styles = StyleSheet.create({
     textSecondaryDark: {
         color: Colors.dark.icon,
     },
-    topicItem: {
+    // Cards Grid - matching Home
+    cardsGrid: {
+        gap: 20,
+    },
+    cardsGridWide: {
         flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
+        flexWrap: 'wrap',
+        gap: 24,
+    },
+    // Feature Card - matching Home
+    featureCard: {
         backgroundColor: Colors.light.card,
-        borderRadius: 16,
-        marginBottom: 12,
-        shadowColor: Colors.light.border,
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-        elevation: 3,
+        borderRadius: 20,
+        padding: 24,
+        // Enhanced Neumorphism shadows
+        shadowColor: '#a3b1c6',
+        shadowOffset: { width: 6, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
+        position: 'relative',
     },
-    topicItemDark: {
+    featureCardDark: {
         backgroundColor: Colors.dark.card,
+        shadowColor: '#000',
+        shadowOpacity: 0.5,
     },
-    topicIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    featureCardWide: {
+        flex: 1,
+        minWidth: 300,
+        maxWidth: '48%',
+        padding: 32,
+    },
+    // Icon Container - matching Home
+    iconContainer: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 16,
+        marginBottom: 16,
     },
-    topicTextContainer: {
-        flex: 1,
-    },
-    topicTitle: {
-        fontSize: 17,
-        fontWeight: '600',
+    // Feature Title - matching Home
+    featureTitle: {
+        fontSize: 19,
+        fontWeight: '700',
         color: Colors.light.text,
+        marginBottom: 10,
     },
-    topicSubtitle: {
-        fontSize: 13,
+    featureTitleWide: {
+        fontSize: 22,
+    },
+    // Feature Description - matching Home
+    featureDesc: {
+        fontSize: 15,
         color: Colors.light.icon,
-        marginTop: 2,
+        lineHeight: 22,
+        paddingRight: 30,
+    },
+    featureDescWide: {
+        fontSize: 17,
+        lineHeight: 26,
+    },
+    // Card Arrow - matching Home
+    cardArrow: {
+        position: 'absolute',
+        right: 20,
+        top: '50%',
+        marginTop: -10,
     },
     // Active Quiz Styles
     quizHeader: {

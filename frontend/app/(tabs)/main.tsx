@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { HoverableCard } from '@/components/ui/HoverableCard';
 
 // Import screens as components (we'll render them based on active tab)
 import LabScreen from './index';
@@ -37,10 +38,9 @@ const WelcomeContent = ({ isDark, onNavigate, isWide }: { isDark: boolean; onNav
 
         {/* Feature Cards */}
         <View style={[styles.featuresGrid, isWide && styles.featuresGridWide]}>
-            <TouchableOpacity
+            <HoverableCard
                 style={[styles.featureCard, isDark && styles.featureCardDark, isWide && styles.featureCardWide]}
                 onPress={() => onNavigate('materials')}
-                activeOpacity={0.8}
             >
                 <View style={[styles.iconContainer, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
                     <IconSymbol name="book.fill" size={isWide ? 40 : 32} color="#6366f1" />
@@ -54,12 +54,11 @@ const WelcomeContent = ({ isDark, onNavigate, isWide }: { isDark: boolean; onNav
                 <View style={styles.cardArrow}>
                     <IconSymbol name="chevron.right" size={20} color={isDark ? '#888' : '#999'} />
                 </View>
-            </TouchableOpacity>
+            </HoverableCard>
 
-            <TouchableOpacity
+            <HoverableCard
                 style={[styles.featureCard, isDark && styles.featureCardDark, isWide && styles.featureCardWide]}
                 onPress={() => onNavigate('lab')}
-                activeOpacity={0.8}
             >
                 <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
                     <IconSymbol name="flask.fill" size={isWide ? 40 : 32} color="#10b981" />
@@ -73,12 +72,11 @@ const WelcomeContent = ({ isDark, onNavigate, isWide }: { isDark: boolean; onNav
                 <View style={styles.cardArrow}>
                     <IconSymbol name="chevron.right" size={20} color={isDark ? '#888' : '#999'} />
                 </View>
-            </TouchableOpacity>
+            </HoverableCard>
 
-            <TouchableOpacity
+            <HoverableCard
                 style={[styles.featureCard, isDark && styles.featureCardDark, isWide && styles.featureCardWide]}
                 onPress={() => onNavigate('quiz')}
-                activeOpacity={0.8}
             >
                 <View style={[styles.iconContainer, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
                     <IconSymbol name="questionmark.circle.fill" size={isWide ? 40 : 32} color="#f59e0b" />
@@ -92,7 +90,7 @@ const WelcomeContent = ({ isDark, onNavigate, isWide }: { isDark: boolean; onNav
                 <View style={styles.cardArrow}>
                     <IconSymbol name="chevron.right" size={20} color={isDark ? '#888' : '#999'} />
                 </View>
-            </TouchableOpacity>
+            </HoverableCard>
         </View>
     </ScrollView>
 );
@@ -339,17 +337,18 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.light.card,
         borderRadius: 20,
         padding: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
+        // Enhanced Neumorphism shadows
+        shadowColor: '#a3b1c6',
+        shadowOffset: { width: 6, height: 6 },
+        shadowOpacity: 0.4,
         shadowRadius: 12,
-        elevation: 4,
+        elevation: 8,
         position: 'relative',
     },
     featureCardDark: {
         backgroundColor: Colors.dark.card,
         shadowColor: '#000',
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.5,
     },
     featureCardWide: {
         flex: 1,

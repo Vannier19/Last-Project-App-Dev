@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View, Text, useWindowDimensions } from 'react-native';
 import { AnalysisPanel } from './AnalysisPanel';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, runOnJS, cancelAnimation, useDerivedValue } from 'react-native-reanimated';
 import { Image } from 'expo-image';
@@ -13,29 +13,24 @@ export function VerticalMotionSimulation() {
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? 'light';
     const isDark = theme === 'dark';
+    const { width } = useWindowDimensions();
+    const isWide = width > 768;
 
-    const [velocity, setVelocity] = useState('20'); // Initial Velocity (v0) upward
+    const [velocity, setVelocity] = useState('20');
     const [isPlaying, setIsPlaying] = useState(false);
 
-    // Physics Constants
     const GRAVITY = 9.8;
-    const PIXEL_TO_METER = 1 / 5; // 5px = 1m
     const METER_TO_PIXEL = 5;
 
-    // Shared Values
     const time = useSharedValue(0);
     const v0 = useDerivedValue(() => parseFloat(velocity) || 0);
 
-    // Derived Physics Values (Time-Driven)
     const posY = useDerivedValue(() => {
-        // y = v0*t - 0.5*g*t^2
-        // If y < 0 (below ground), clamp to 0
         const y = v0.value * time.value - 0.5 * GRAVITY * time.value * time.value;
         return Math.max(0, y);
     });
 
     const velY = useDerivedValue(() => {
-        // v = v0 - gt
         if (!isPlaying && time.value === 0) return v0.value;
         return v0.value - GRAVITY * time.value;
     });
@@ -55,18 +50,15 @@ export function VerticalMotionSimulation() {
 
         setIsPlaying(true);
 
-        // Total flight time: 2 * v0 / g (up and down to same level)
         const totalTime = (2 * v0_num) / GRAVITY;
 
         if (time.value >= totalTime) {
-            // Restart if finished
             time.value = 0;
         }
 
         const remainingTime = totalTime - time.value;
         const duration_ms = remainingTime * 1000;
 
-        // Animate Time linearly
         time.value = withTiming(totalTime, {
             duration: duration_ms,
             easing: Easing.linear,
@@ -89,10 +81,77 @@ export function VerticalMotionSimulation() {
 
     const animatedStyle = useAnimatedStyle(() => {
         return {
-            transform: [{ translateY: -posY.value * METER_TO_PIXEL }], // Negative because Y goes down in RN
+            transform: [{ translateY: -posY.value * METER_TO_PIXEL }],
         };
     });
 
+    // Desktop: Side-by-side layout
+    if (isWide) {
+        return (
+            <View style={styles.wideContainer}>
+                {/* Left Panel - Controls & Analysis */}
+                <View style={styles.leftPanel}>
+                    <Card style={styles.controlPanelWide}>
+                        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Parameters</Text>
+                        <Input
+                            label="Initial Velocity (v₀) [m/s]"
+                            keyboardType="numeric"
+                            value={velocity}
+                            onChangeText={setVelocity}
+                            editable={!isPlaying}
+                        />
+
+                        <View style={styles.controlsRowWide}>
+                            <Button
+                                title={isPlaying ? "Pause" : "Throw Up"}
+                                onPress={startSimulation}
+                                style={{ flex: 1, marginRight: 8 }}
+                            />
+                            <Button
+                                title="Reset"
+                                variant="secondary"
+                                onPress={resetSimulation}
+                                style={{ flex: 1 }}
+                            />
+                        </View>
+                    </Card>
+
+                    <AnalysisPanel
+                        time={time}
+                        posX={posX}
+                        posY={posY}
+                        velX={velX}
+                        velY={velY}
+                    />
+                </View>
+
+                {/* Right Panel - Simulation Area */}
+                <View style={styles.rightPanel}>
+                    <View style={[styles.trackContainerWide, isDark && styles.trackContainerDark]}>
+                        <View style={styles.rulerContainer}>
+                            {[0, 20, 40, 60, 80, 100].map(h => (
+                                <View key={h} style={[styles.rulerMark, { bottom: h * 3.5 }]} />
+                            ))}
+                        </View>
+
+                        <View style={styles.ground} />
+
+                        <View style={styles.objectContainer}>
+                            <Animated.View style={[styles.object, animatedStyle]}>
+                                <Image
+                                    source={require('@/assets/images/rock.png')}
+                                    style={styles.rockImage}
+                                    contentFit="contain"
+                                />
+                            </Animated.View>
+                        </View>
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    // Mobile: Stacked layout
     return (
         <View style={styles.container}>
             <Card style={styles.controlPanel}>
@@ -148,6 +207,7 @@ export function VerticalMotionSimulation() {
 }
 
 const styles = StyleSheet.create({
+    // Mobile Layout
     container: {
         gap: 20,
     },
@@ -165,7 +225,6 @@ const styles = StyleSheet.create({
         justifyContent: 'flex-end',
         alignItems: 'center',
         paddingBottom: 20,
-        borderWidth: 0,
         overflow: 'hidden',
         shadowColor: Colors.light.border,
         shadowOffset: { width: 4, height: 4 },
@@ -176,6 +235,58 @@ const styles = StyleSheet.create({
     trackContainerDark: {
         backgroundColor: Colors.dark.background,
     },
+    // Desktop Layout
+    wideContainer: {
+        flexDirection: 'row',
+        gap: 24,
+    },
+    leftPanel: {
+        width: 320,
+        gap: 20,
+    },
+    rightPanel: {
+        flex: 1,
+    },
+    controlPanelWide: {
+        padding: 20,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: Colors.light.text,
+        marginBottom: 16,
+    },
+    textDark: {
+        color: Colors.dark.text,
+    },
+    controlsRowWide: {
+        flexDirection: 'row',
+        marginTop: 16,
+    },
+    controlsWide: {
+        marginTop: 20,
+    },
+    trackContainerWide: {
+        height: 400,
+        backgroundColor: Colors.light.background,
+        borderRadius: 20,
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingBottom: 20,
+        overflow: 'hidden',
+        shadowColor: '#a3b1c6',
+        shadowOffset: { width: 6, height: 6 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        elevation: 8,
+    },
+    objectContainer: {
+        position: 'absolute',
+        bottom: 20,
+        alignItems: 'center',
+        width: '100%',
+    },
+    // Common
     ground: {
         position: 'absolute',
         bottom: 0,
@@ -201,7 +312,6 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         zIndex: 2,
-        marginBottom: 0,
     },
     rockImage: {
         width: '100%',

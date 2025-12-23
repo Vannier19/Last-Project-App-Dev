@@ -27,6 +27,7 @@ export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     // For native (iOS/Android) Google Sign-In
     const [request, response, promptAsync] = Google.useAuthRequest({
@@ -100,25 +101,49 @@ export default function LoginScreen() {
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            setErrorMessage('Mohon isi semua field');
             return;
         }
 
         setLoading(true);
+        setErrorMessage(''); // Clear previous error
         try {
+            console.log('🔐 Starting login...');
             // 1. Login to Firebase
             const { user, token } = await signIn(email, password);
             console.log('✅ Firebase login success:', user.email);
 
             // 2. Sync with Backend
-            await api.syncUser(token);
-            console.log('✅ Backend sync success');
+            const syncResponse = await api.syncUser(token);
+            console.log('✅ Backend sync success:', syncResponse);
 
-            // 3. Navigate to main app
+            // 3. Small delay to ensure auth state is updated
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 4. Navigate to main app
             router.replace('/(tabs)/main');
         } catch (error: any) {
             console.error('❌ Login error:', error);
-            Alert.alert('Login Failed', error.message || 'An error occurred');
+            console.log('🔍 Error details:', {
+                message: error.message,
+                code: error.code,
+                name: error.name
+            });
+            
+            // Show error message in UI
+            const errorMsg = error.message || 'Terjadi kesalahan saat login';
+            setErrorMessage(errorMsg);
+            console.log('🚨 Error message set:', errorMsg);
+            
+            // Also show Alert for mobile (won't work on web but that's ok)
+            if (Platform.OS !== 'web') {
+                Alert.alert(
+                    '⚠️ Login Gagal',
+                    errorMsg,
+                    [{ text: 'OK', style: 'cancel' }],
+                    { cancelable: true }
+                );
+            }
         } finally {
             setLoading(false);
         }
@@ -137,6 +162,12 @@ export default function LoginScreen() {
                     </View>
 
                     <Card style={styles.formCard}>
+                        {errorMessage ? (
+                            <View style={[styles.errorContainer, isDark && styles.errorContainerDark]}>
+                                <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+                            </View>
+                        ) : null}
+                        
                         <Input
                             label="Email"
                             placeholder="Enter your email"
@@ -238,5 +269,22 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: Colors.light.tint,
+    },
+    errorContainer: {
+        backgroundColor: '#fee',
+        borderLeftWidth: 4,
+        borderLeftColor: '#f44',
+        padding: 12,
+        marginBottom: 16,
+        borderRadius: 8,
+    },
+    errorContainerDark: {
+        backgroundColor: '#422',
+        borderLeftColor: '#f66',
+    },
+    errorText: {
+        color: '#c00',
+        fontSize: 14,
+        fontWeight: '500',
     },
 });

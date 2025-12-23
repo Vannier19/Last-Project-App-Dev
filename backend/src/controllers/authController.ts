@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 // Dipanggil setelah Frontend berhasil login Google & dapet Token
 export const syncUser = async (req: AuthRequest, res: Response) => {
     try {
+        const db = admin.firestore();
         const user = req.user; // Dari token
         if (!user) return res.status(401).json({ message: "Token invalid" });
 
@@ -23,8 +24,8 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
             return res.status(201).json({ message: "User baru terdaftar" });
         }
 
-        res.status(200).json({ message: "User verified", role: doc.data()?.role });
+        return res.status(200).json({ message: "User verified", role: doc.data()?.role });
     } catch (error) {
-        res.status(500).json({ error: "Gagal sinkronisasi user" });
+        return res.status(500).json({ error: "Gagal sinkronisasi user" });
     }
 };

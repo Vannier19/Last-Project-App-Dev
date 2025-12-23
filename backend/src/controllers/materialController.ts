@@ -5,6 +5,7 @@ import { db } from '../config/firebase';
 // GET: Ambil semua materi untuk Sidebar
 export const getAllMaterials = async (req: Request, res: Response) => {
     try {
+        const db = admin.firestore();
         const snapshot = await db.collection('materials').orderBy('order').get();
         const materials = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         res.status(200).json(materials);
@@ -16,6 +17,7 @@ export const getAllMaterials = async (req: Request, res: Response) => {
 // POST: Tambah materi baru (Hanya Admin nanti)
 export const createMaterial = async (req: Request, res: Response) => {
     try {
+        const db = admin.firestore();
         const { title, content, order } = req.body;
         const newDoc = await db.collection('materials').add({
             title,

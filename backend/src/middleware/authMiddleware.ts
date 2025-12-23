@@ -17,7 +17,7 @@ export const verifyToken = async (req: AuthRequest, res: Response, next: NextFun
     try {
         const decodedValue = await admin.auth().verifyIdToken(token);
         req.user = decodedValue; // Simpan data user di request
-        next(); // Lanjut ke controller
+        return next(); // Lanjut ke controller
     } catch (e) {
         return res.status(403).json({ message: "Token tidak valid atau kadaluarsa." });
     }

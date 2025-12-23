@@ -1,18 +1,12 @@
 import express from 'express';
 import cors from 'cors';
-import * as admin from 'firebase-admin';
-import * as dotenv from 'dotenv';
-import path from 'path';
 
-// Load environment variables first
-dotenv.config();
+// Setup Firebase
+import './config/firebase';
 
 const app = express();
 app.use(cors());
 app.use(express.json()); // Supaya bisa baca JSON body
-
-// Setup Firebase
-import './config/firebase';
 
 // Import Routes
 import materialRoutes from './routes/materialRoutes';

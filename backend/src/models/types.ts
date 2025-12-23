@@ -28,6 +28,24 @@ export interface Quiz {
   }>;
 }
 
+// Detail jawaban per soal quiz
+export interface QuizAnswerDetail {
+  questionNumber: number;      // Nomor soal (1, 2, 3, ...)
+  question: string;            // Teks pertanyaan
+  userAnswer: string;          // Jawaban yang dipilih user
+  correctAnswer: string;       // Jawaban yang benar
+  isCorrect: boolean;          // Apakah jawaban user benar?
+}
+
+// Data lengkap hasil quiz
+export interface QuizResult {
+  score: number;               // Nilai total (misal: 80)
+  totalQuestions: number;      // Total soal
+  correctAnswers: number;      // Jumlah jawaban benar
+  answers: QuizAnswerDetail[]; // Detail per soal
+  submittedAt: Date;           // Waktu submit
+}
+
 // Tipe Data Lab
 export interface Lab {
   id?: string;
@@ -40,6 +58,7 @@ export interface UserProgress {
   userId: string;
   completedMaterials: string[]; // Array ID materi yang sudah dibaca ["mat1", "mat2"]
   quizScores: Record<string, number>; // Object skor kuis: { "quiz1_id": 80, "quiz2_id": 100 }
+  quizResults: Record<string, QuizResult>; // Detail lengkap hasil quiz per quizId
   labStatus: Record<string, 'not-started' | 'in-progress' | 'completed'>; // Status Lab
   lastUpdated: Date;
 }

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "690100262555",
+    "project_id": "virtual-lab-fisika",
+    "storage_bucket": "virtual-lab-fisika.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:690100262555:android:8ad96c6565b5e88cb9983e",
+        "android_client_info": {
+          "package_name": "com.virtuallab.physics"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "690100262555-6u367dejlcbv0hn2255ru2ku1qrq911n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1tP1gcH0PDm8hwbsV38AEycSmWAGMza4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "690100262555-6u367dejlcbv0hn2255ru2ku1qrq911n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

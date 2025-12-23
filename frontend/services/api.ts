@@ -1,8 +1,20 @@
 // Hybrid API Service: Firebase Auth (direct) + Express Backend (data operations)
 import { auth } from './firebase';
+import { Alert } from 'react-native';
 
 // API Base URL - Firebase Functions (production) or localhost (development)
+// PRODUCTION URL: Menggunakan Cloud Run deployment
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api-7fvjncx4sq-uc.a.run.app';
+
+// Validasi API URL saat startup
+if (!API_BASE_URL) {
+  console.error('❌ CRITICAL: API_BASE_URL is undefined!');
+  Alert.alert('Configuration Error', 'API URL tidak ditemukan. Silakan hubungi administrator.');
+} else if (!API_BASE_URL.startsWith('https://')) {
+  console.warn('⚠️ WARNING: API URL tidak menggunakan HTTPS:', API_BASE_URL);
+}
+
+console.log('🔗 API Base URL:', API_BASE_URL);
 
 interface ApiResponse<T = any> {
   data?: T;

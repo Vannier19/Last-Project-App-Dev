@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, Dimensions, useWindowDimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, useWindowDimensions, Alert } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, runOnJS, cancelAnimation } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 import { Button } from '../ui/Button';
@@ -7,6 +7,7 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { api } from '@/services/api';
 
 export function GLBSimulation() {
     const colorScheme = useColorScheme();
@@ -19,8 +20,23 @@ export function GLBSimulation() {
 
     const [velocity, setVelocity] = useState('10');
     const [isPlaying, setIsPlaying] = useState(false);
+    const [completedRuns, setCompletedRuns] = useState(0);
 
     const position = useSharedValue(0);
+
+    // Mark lab as in-progress on first interaction
+    useEffect(() => {
+        const markInProgress = async () => {
+            try {
+                await api.updateLabStatus('glb-lab', 'in-progress');
+                console.log('✅ GLB Lab marked as in-progress');
+            } catch (error) {
+                console.log('Failed to mark lab progress:', error);
+            }
+        };
+        
+        markInProgress();
+    }, []); // Run once on mount
 
     const startSimulation = () => {
         if (isPlaying) {
@@ -43,8 +59,25 @@ export function GLBSimulation() {
         });
     };
 
-    const handleFinish = () => {
+    const handleFinish = async () => {
         setIsPlaying(false);
+        const newCompletedRuns = completedRuns + 1;
+        setCompletedRuns(newCompletedRuns);
+
+        // After 3 successful runs, mark lab as completed
+        if (newCompletedRuns >= 3) {
+            try {
+                await api.updateLabStatus('glb-lab', 'completed');
+                Alert.alert(
+                    'Lab Completed! 🎉',
+                    'You have successfully completed the GLB simulation lab.',
+                    [{ text: 'OK' }]
+                );
+                console.log('✅ GLB Lab marked as completed');
+            } catch (error) {
+                console.log('Failed to save lab completion:', error);
+            }
+        }
     };
 
     const resetSimulation = () => {

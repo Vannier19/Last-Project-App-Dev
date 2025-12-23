@@ -97,11 +97,19 @@ class HybridApiService {
     }
   }
 
-  // Progress: Save quiz score via Express backend
+  // Progress: Save quiz score with detailed answers via Express backend
   async saveQuizProgress(data: {
     materialId: string;
     score: number;
-    answers?: any[];
+    totalQuestions: number;
+    correctAnswers: number;
+    answers: Array<{
+      questionNumber: number;
+      question: string;
+      userAnswer: string;
+      correctAnswer: string;
+      isCorrect: boolean;
+    }>;
   }): Promise<ApiResponse> {
     try {
       const response = await apiRequest('/api/progress/quiz', {
@@ -109,6 +117,9 @@ class HybridApiService {
         body: JSON.stringify({
           quizId: data.materialId,
           score: data.score,
+          totalQuestions: data.totalQuestions,
+          correctAnswers: data.correctAnswers,
+          answers: data.answers,
         }),
       });
 

@@ -143,6 +143,16 @@ export default function QuizScreen() {
         const total = quizData[quizState.topic].length;
         const percentage = Math.round((finalScore / total) * 100);
 
+        // Build detailed answers array
+        const questions = quizData[quizState.topic];
+        const detailedAnswers = questions.map((question, index) => ({
+            questionNumber: index + 1,
+            question: question.question,
+            userAnswer: quizState.answers[index] || 'Tidak dijawab',
+            correctAnswer: question.answer,
+            isCorrect: quizState.answers[index] === question.answer
+        }));
+
         // Save to AsyncStorage (local backup)
         try {
             const key = `quiz_${quizState.topic}_${Date.now()}`;
@@ -150,6 +160,8 @@ export default function QuizScreen() {
                 topic: quizState.topic,
                 score: finalScore,
                 total: total,
+                percentage: percentage,
+                answers: detailedAnswers,
                 date: new Date().toISOString()
             };
             await AsyncStorage.setItem(key, JSON.stringify(scoreData));
@@ -157,15 +169,18 @@ export default function QuizScreen() {
             console.log('Failed to save score locally', e);
         }
 
-        // Save to Express backend (server persistence)
+        // Save to Express backend with detailed answers
         try {
             await api.saveQuizProgress({
                 materialId: quizState.topic,
                 score: percentage,
+                totalQuestions: total,
+                correctAnswers: finalScore,
+                answers: detailedAnswers
             });
-            console.log('Quiz score saved to backend');
+            console.log('✅ Quiz score with details saved to backend');
         } catch (e) {
-            console.log('Failed to save score to backend (will sync later)', e);
+            console.log('❌ Failed to save quiz to backend:', e);
         }
     };
 

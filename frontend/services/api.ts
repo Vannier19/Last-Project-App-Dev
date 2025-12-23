@@ -1,18 +1,8 @@
-// Firebase Direct API Service (No Express Backend Required)
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  collection,
-  getDocs,
-  arrayUnion
-} from 'firebase/firestore';
-import app, { auth } from './firebase';
+// Hybrid API Service: Firebase Auth (direct) + Express Backend (data operations)
+import { auth } from './firebase';
 
-// Initialize Firestore
-const db = getFirestore(app);
+// API Base URL - Firebase Functions (production) or localhost (development)
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api-7fvjncx4sq-uc.a.run.app';
 
 interface ApiResponse<T = any> {
   data?: T;
@@ -20,134 +10,179 @@ interface ApiResponse<T = any> {
   error?: string;
 }
 
-class FirebaseApiService {
-  // Auth: Sync user to Firestore
-  async syncUser(token: string): Promise<ApiResponse> {
+// Helper: Get Firebase ID token for authenticated requests
+async function getAuthToken(): Promise<string | null> {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return await user.getIdToken();
+}
+
+// Helper: Make authenticated API request
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  const token = await getAuthToken();
+
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  if (token) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'API request failed');
+  }
+
+  return { data };
+}
+
+class HybridApiService {
+  // Auth: Sync user to backend (creates/updates user in Firestore via Express)
+  async syncUser(_token?: string): Promise<ApiResponse> {
     try {
       const user = auth.currentUser;
       if (!user) {
         throw new Error('No authenticated user');
       }
 
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
+      const response = await apiRequest('/api/auth/sync', {
+        method: 'POST',
+      });
 
-      if (!userDoc.exists()) {
-        // Create new user document
-        await setDoc(userRef, {
-          email: user.email,
-          displayName: user.displayName || '',
-          photoURL: user.photoURL || '',
-          role: 'student',
-          createdAt: new Date().toISOString(),
-          progress: {
-            completedMaterials: [],
-            quizScores: {},
-            labStatus: {}
-          }
-        });
-      }
-
-      return { message: 'User synced successfully' };
+      return { message: 'User synced successfully', ...response };
     } catch (error: any) {
       console.error('Sync user error:', error);
       throw error;
     }
   }
 
-  // Materials: Get all materials
+  // Materials: Get all materials via Express backend
   async getMaterials(): Promise<ApiResponse> {
     try {
-      const materialsRef = collection(db, 'materials');
-      const snapshot = await getDocs(materialsRef);
-
-      const materials = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      return { data: materials };
+      const response = await apiRequest('/api/materials');
+      return response;
     } catch (error: any) {
       console.error('Get materials error:', error);
       throw error;
     }
   }
 
-  // Materials: Get material by ID
+  // Materials: Get material by ID (uses materials list for now)
   async getMaterialById(id: string): Promise<ApiResponse> {
     try {
-      const materialRef = doc(db, 'materials', id);
-      const materialDoc = await getDoc(materialRef);
+      // Backend doesn't have single material endpoint yet, so get all and filter
+      const response = await this.getMaterials();
+      const materials = response.data || [];
+      const material = materials.find((m: any) => m.id === id);
 
-      if (!materialDoc.exists()) {
+      if (!material) {
         throw new Error('Material not found');
       }
 
-      return { data: { id: materialDoc.id, ...materialDoc.data() } };
+      return { data: material };
     } catch (error: any) {
       console.error('Get material error:', error);
       throw error;
     }
   }
 
-  // Progress: Save quiz progress
+  // Progress: Save quiz score via Express backend
   async saveQuizProgress(data: {
     materialId: string;
     score: number;
-    answers: any[];
+    answers?: any[];
   }): Promise<ApiResponse> {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No authenticated user');
-      }
-
-      const userRef = doc(db, 'users', user.uid);
-
-      await updateDoc(userRef, {
-        [`progress.quizScores.${data.materialId}`]: data.score,
-        'progress.completedMaterials': arrayUnion(data.materialId)
+      const response = await apiRequest('/api/progress/quiz', {
+        method: 'POST',
+        body: JSON.stringify({
+          quizId: data.materialId,
+          score: data.score,
+        }),
       });
 
-      return { message: 'Progress saved successfully' };
+      return { message: 'Progress saved successfully', ...response };
     } catch (error: any) {
       console.error('Save progress error:', error);
       throw error;
     }
   }
 
-  // Progress: Get user progress
+  // Progress: Get user progress via Express backend
   async getProgress(): Promise<ApiResponse> {
     try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No authenticated user');
-      }
+      const response = await apiRequest('/api/progress');
 
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
+      // Transform backend response to match expected format
+      const backendData = (response.data || {}) as {
+        completedMaterials?: string[];
+        quizScores?: Record<string, number>;
+        labStatus?: Record<string, string>;
+      };
+      const formattedData = {
+        completedMaterials: backendData.completedMaterials || [],
+        quizScores: backendData.quizScores || {},
+        labStatus: backendData.labStatus || {},
+      };
 
-      if (!userDoc.exists()) {
-        return { data: { completedMaterials: [], quizScores: {}, labStatus: {} } };
-      }
-
-      const userData = userDoc.data();
-      return { data: userData.progress || { completedMaterials: [], quizScores: {}, labStatus: {} } };
+      return { data: formattedData };
     } catch (error: any) {
       console.error('Get progress error:', error);
+      // Return empty progress on error (user might be new)
+      return { data: { completedMaterials: [], quizScores: {}, labStatus: {} } };
+    }
+  }
+
+  // Progress: Mark material as completed
+  async completeMaterial(materialId: string): Promise<ApiResponse> {
+    try {
+      const response = await apiRequest('/api/progress/material', {
+        method: 'POST',
+        body: JSON.stringify({ materialId }),
+      });
+
+      return { message: 'Material completed', ...response };
+    } catch (error: any) {
+      console.error('Complete material error:', error);
       throw error;
     }
   }
 
-  // Helper: Set token (for compatibility, not needed with Firebase)
+  // Progress: Update lab status
+  async updateLabStatus(labId: string, status: 'in-progress' | 'completed'): Promise<ApiResponse> {
+    try {
+      const response = await apiRequest('/api/progress/lab', {
+        method: 'POST',
+        body: JSON.stringify({ labId, status }),
+      });
+
+      return { message: 'Lab status updated', ...response };
+    } catch (error: any) {
+      console.error('Update lab status error:', error);
+      throw error;
+    }
+  }
+
+  // Helper: Set token (for compatibility - not needed with Firebase Auth)
   setToken(token: string) {
-    // Not needed with Firebase - auth is handled automatically
+    // Not needed - Firebase Auth handles tokens automatically
   }
 
   clearToken() {
-    // Not needed with Firebase
+    // Not needed - Firebase Auth handles this
   }
 }
 
-export const api = new FirebaseApiService();
+export const api = new HybridApiService();
 export default api;

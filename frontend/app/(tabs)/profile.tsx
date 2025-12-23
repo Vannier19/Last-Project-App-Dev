@@ -9,6 +9,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { auth, signOut, getCurrentUser } from '@/services/firebase';
+import { api } from '@/services/api';
 
 interface QuizRecord {
     key: string;
@@ -37,6 +38,7 @@ export default function ProfileScreen() {
     }, []);
 
     const loadHistory = useCallback(async () => {
+        // Load from local AsyncStorage first (for offline support)
         try {
             const keys = await AsyncStorage.getAllKeys();
             const quizKeys = keys.filter(k => k.startsWith('quiz_'));
@@ -49,7 +51,18 @@ export default function ProfileScreen() {
 
             setQuizHistory(records);
         } catch (e) {
-            console.log('Failed to load history', e);
+            console.log('Failed to load local history', e);
+        }
+
+        // Also fetch from backend to get server-side progress
+        try {
+            const response = await api.getProgress();
+            if (response.data?.quizScores) {
+                console.log('Backend progress:', response.data.quizScores);
+                // Backend quiz scores are available for future integration
+            }
+        } catch (e) {
+            console.log('Failed to fetch backend progress (offline mode)', e);
         }
     }, []);
 

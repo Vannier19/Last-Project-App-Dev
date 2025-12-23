@@ -9,6 +9,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { HoverableCard } from '@/components/ui/HoverableCard';
 import { quizData } from '@/constants/quizData';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '@/services/api';
 
 type TopicKey = keyof typeof quizData;
 type QuizMode = 'selection' | 'active' | 'result';
@@ -138,18 +139,33 @@ export default function QuizScreen() {
     const finishQuiz = async () => {
         setMode('result');
 
-        // Save score locally (for later backend sync)
+        const finalScore = quizState.score + (selectedOption === quizData[quizState.topic][quizState.currentIndex].answer ? 1 : 0);
+        const total = quizData[quizState.topic].length;
+        const percentage = Math.round((finalScore / total) * 100);
+
+        // Save to AsyncStorage (local backup)
         try {
             const key = `quiz_${quizState.topic}_${Date.now()}`;
             const scoreData = {
                 topic: quizState.topic,
-                score: quizState.score + (selectedOption === quizData[quizState.topic][quizState.currentIndex].answer ? 1 : 0),
-                total: quizData[quizState.topic].length,
+                score: finalScore,
+                total: total,
                 date: new Date().toISOString()
             };
             await AsyncStorage.setItem(key, JSON.stringify(scoreData));
         } catch (e) {
             console.log('Failed to save score locally', e);
+        }
+
+        // Save to Express backend (server persistence)
+        try {
+            await api.saveQuizProgress({
+                materialId: quizState.topic,
+                score: percentage,
+            });
+            console.log('Quiz score saved to backend');
+        } catch (e) {
+            console.log('Failed to save score to backend (will sync later)', e);
         }
     };
 

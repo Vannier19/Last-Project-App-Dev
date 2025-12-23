@@ -1,6 +1,6 @@
 // backend/src/controllers/materialController.ts
 import { Request, Response } from 'express';
-import { db } from '../config/firebase';
+import { admin } from '../config/firebase';
 
 // GET: Ambil semua materi untuk Sidebar
 export const getAllMaterials = async (req: Request, res: Response) => {

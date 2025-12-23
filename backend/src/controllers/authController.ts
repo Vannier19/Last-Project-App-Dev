@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { db } from '../config/firebase';
+import { admin } from '../config/firebase';
 
 // Dipanggil setelah Frontend berhasil login Google & dapet Token
 export const syncUser = async (req: AuthRequest, res: Response) => {

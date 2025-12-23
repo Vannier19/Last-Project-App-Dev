@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { db, admin } from '../config/firebase';
+import { admin } from '../config/firebase';
 
 // 1. GET: Ambil Progress User Saat Ini
 export const getUserProgress = async (req: AuthRequest, res: Response) => {

@@ -6,16 +6,25 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api-7fvjncx4sq-uc.a.run.app"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api-7fvjncx4sq-uc.a.run.app"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api-7fvjncx4sq-uc.a.run.app"
+      }
     }
   },
   "submit": {

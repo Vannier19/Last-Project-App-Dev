@@ -18,20 +18,23 @@ export default function RegisterScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const handleRegister = async () => {
         if (!name || !email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            setErrorMessage('Mohon isi semua field');
             return;
         }
 
         if (password.length < 6) {
-            Alert.alert('Error', 'Password must be at least 6 characters');
+            setErrorMessage('Password minimal 6 karakter');
             return;
         }
 
         setIsLoading(true);
+        setErrorMessage(''); // Clear previous error
         try {
+            console.log('📝 Starting registration...');
             // 1. Register to Firebase
             const { user, token } = await signUp(email, password);
             console.log('✅ Firebase registration success:', user.email);
@@ -40,13 +43,40 @@ export default function RegisterScreen() {
             await api.syncUser(token);
             console.log('✅ Backend sync success');
 
-            // 3. Navigate to main app
-            Alert.alert('Success', 'Account created successfully!', [
-                { text: 'OK', onPress: () => router.replace('/(tabs)/main') }
-            ]);
+            // 3. Small delay to ensure auth state is updated
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 4. Navigate to main app (or show success message for web)
+            if (Platform.OS === 'web') {
+                // For web, just navigate (Alert won't work)
+                router.replace('/(tabs)/main');
+            } else {
+                Alert.alert('Berhasil', 'Akun berhasil dibuat!', [
+                    { text: 'OK', onPress: () => router.replace('/(tabs)/main') }
+                ]);
+            }
         } catch (error: any) {
             console.error('❌ Registration error:', error);
-            Alert.alert('Registration Failed', error.message || 'An error occurred');
+            console.log('🔍 Error details:', {
+                message: error.message,
+                code: error.code,
+                name: error.name
+            });
+            
+            // Show error message in UI
+            const errorMsg = error.message || 'Terjadi kesalahan saat registrasi';
+            setErrorMessage(errorMsg);
+            console.log('🚨 Error message set:', errorMsg);
+            
+            // Also show Alert for mobile
+            if (Platform.OS !== 'web') {
+                Alert.alert(
+                    '⚠️ Registrasi Gagal',
+                    errorMsg,
+                    [{ text: 'OK', style: 'cancel' }],
+                    { cancelable: true }
+                );
+            }
         } finally {
             setIsLoading(false);
         }
@@ -65,6 +95,12 @@ export default function RegisterScreen() {
                 </View>
 
                 <Card style={styles.formCard}>
+                    {errorMessage ? (
+                        <View style={[styles.errorContainer, isDark && styles.errorContainerDark]}>
+                            <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
+                        </View>
+                    ) : null}
+                    
                     <Input
                         label="Full Name"
                         placeholder="Enter your full name"
@@ -162,5 +198,22 @@ const styles = StyleSheet.create({
     footerText: {
         color: '#666',
         fontSize: 14,
+    },
+    errorContainer: {
+        backgroundColor: '#fee',
+        borderLeftWidth: 4,
+        borderLeftColor: '#f44',
+        padding: 12,
+        marginBottom: 16,
+        borderRadius: 8,
+    },
+    errorContainerDark: {
+        backgroundColor: '#422',
+        borderLeftColor: '#f66',
+    },
+    errorText: {
+        color: '#c00',
+        fontSize: 14,
+        fontWeight: '500',
     },
 });

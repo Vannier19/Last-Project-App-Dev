@@ -6,6 +6,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { HoverableCard } from '@/components/ui/HoverableCard';
+import { NavTab } from '@/components/ui/NavTab';
 
 // Import screens as components (we'll render them based on active tab)
 import LabScreen from './index';
@@ -99,6 +100,10 @@ export default function MainAppWithTopNav() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const [activeTab, setActiveTab] = useState<TabKey>('welcome');
+    // Dropdown state
+    const [hoveredTab, setHoveredTab] = useState<string | null>(null);
+    const [requestedLabSimulation, setRequestedLabSimulation] = useState<string | null>(null);
+
     const { width } = useWindowDimensions();
     const isWide = width > 768; // iPad/Desktop
 
@@ -107,7 +112,7 @@ export default function MainAppWithTopNav() {
             case 'welcome':
                 return <WelcomeContent isDark={isDark} onNavigate={setActiveTab} isWide={isWide} />;
             case 'lab':
-                return <LabScreen />;
+                return <LabScreen requestedSimulation={requestedLabSimulation} />;
             case 'materials':
                 return <MaterialsScreen />;
             case 'quiz':
@@ -117,6 +122,12 @@ export default function MainAppWithTopNav() {
             default:
                 return null;
         }
+    };
+
+    const handleSelectSimulation = (simKey: string) => {
+        setRequestedLabSimulation(simKey);
+        setActiveTab('lab');
+        setHoveredTab(null);
     };
 
     return (
@@ -137,40 +148,57 @@ export default function MainAppWithTopNav() {
             </View>
 
             {/* Navigation Tabs */}
-            <View style={[styles.navContainer, isDark && styles.navContainerDark]}>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={[styles.navScroll, isWide && styles.navScrollWide]}
-                >
-                    {tabs.map(tab => (
-                        <TouchableOpacity
-                            key={tab.key}
-                            style={[
-                                styles.navTab,
-                                isWide && styles.navTabWide,
-                                activeTab === tab.key && styles.navTabActive,
-                                activeTab === tab.key && isDark && styles.navTabActiveDark
-                            ]}
-                            onPress={() => setActiveTab(tab.key)}
-                        >
-                            <IconSymbol
-                                name={tab.icon}
-                                size={isWide ? 22 : 18}
-                                color={activeTab === tab.key ? (isDark ? Colors.dark.tint : Colors.light.tint) : (isDark ? Colors.dark.icon : Colors.light.icon)}
-                            />
-                            <Text style={[
-                                styles.navTabText,
-                                isWide && styles.navTabTextWide,
-                                isDark && styles.textSecondaryDark,
-                                activeTab === tab.key && styles.navTabTextActive,
-                                activeTab === tab.key && { color: isDark ? Colors.dark.tint : Colors.light.tint }
-                            ]}>
-                                {tab.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+            <View style={[styles.navContainer, isDark && styles.navContainerDark, { zIndex: 100 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: isWide ? 24 : 16 }}>
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={{ gap: isWide ? 12 : 8, overflow: 'visible' }}
+                        style={{ overflow: 'visible' }}
+                    >
+                        {tabs.map(tab => (
+                            <View key={tab.key} style={{ zIndex: tab.key === 'lab' ? 10 : 1 }}>
+                                <NavTab
+                                    label={tab.label}
+                                    icon={tab.icon}
+                                    isActive={activeTab === tab.key}
+                                    isDark={isDark}
+                                    isWide={isWide}
+                                    onPress={() => setActiveTab(tab.key)}
+                                    onHoverIn={tab.key === 'lab' ? () => setHoveredTab('lab') : undefined}
+                                    onHoverOut={tab.key === 'lab' ? () => setHoveredTab(null) : undefined}
+                                />
+                                {/* Dropdown Menu for Lab */}
+                                {tab.key === 'lab' && hoveredTab === 'lab' && (
+                                    <View
+                                        style={[styles.dropdownMenu, isDark && styles.dropdownMenuDark]}
+                                        {...Platform.select({
+                                            web: {
+                                                onMouseEnter: () => setHoveredTab('lab'),
+                                                onMouseLeave: () => setHoveredTab(null)
+                                            }
+                                        })}
+                                    >
+                                        {[
+                                            { label: 'Uniform Linear Motion (GLB)', key: 'glb' },
+                                            { label: 'Uniform Accelerated Motion (GLBB)', key: 'glbb' },
+                                            { label: 'Vertical Motion', key: 'vertical' },
+                                            { label: 'Projectile Motion', key: 'parabola' }
+                                        ].map((item) => (
+                                            <TouchableOpacity
+                                                key={item.key}
+                                                style={[styles.dropdownItem, isDark && styles.dropdownItemDark]}
+                                                onPress={() => handleSelectSimulation(item.key)}
+                                            >
+                                                <Text style={[styles.dropdownText, isDark && styles.dropdownTextDark]}>{item.label}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+                        ))}
+                    </ScrollView>
+                </View>
             </View>
 
             {/* Content Area */}
@@ -242,6 +270,43 @@ const styles = StyleSheet.create({
     navContainerDark: {
         backgroundColor: Colors.dark.card,
         borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
+    // Dropdown Styles
+    dropdownMenu: {
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        minWidth: 260,
+        backgroundColor: Colors.light.card,
+        borderRadius: 12,
+        padding: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+        elevation: 8,
+        zIndex: 1000,
+        marginTop: 4,
+    },
+    dropdownMenuDark: {
+        backgroundColor: '#1E293B', // Slate-800
+        borderWidth: 1,
+        borderColor: '#334155',
+    },
+    dropdownItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+    },
+    dropdownItemDark: {
+    },
+    dropdownText: {
+        fontSize: 14,
+        color: Colors.light.text,
+        fontWeight: '500',
+    },
+    dropdownTextDark: {
+        color: Colors.dark.text,
     },
     navScroll: {
         paddingHorizontal: 16,

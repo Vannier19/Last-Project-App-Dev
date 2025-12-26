@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, ActivityIndicator, TouchableOpacityProps, ViewStyle } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, ActivityIndicator, TouchableOpacityProps, ViewStyle, TextStyle } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -8,6 +8,7 @@ interface ButtonProps extends TouchableOpacityProps {
     variant?: 'primary' | 'secondary' | 'outline' | 'danger';
     size?: 'small' | 'medium' | 'large';
     isLoading?: boolean;
+    textStyle?: TextStyle;
 }
 
 export function Button({
@@ -17,6 +18,7 @@ export function Button({
     isLoading = false,
     style,
     disabled,
+    textStyle,
     ...props
 }: ButtonProps) {
     const colorScheme = useColorScheme();
@@ -78,7 +80,8 @@ export function Button({
                     {
                         color: getTextColor(),
                         fontSize: size === 'small' ? 14 : 16,
-                    }
+                    },
+                    textStyle
                 ]}>
                     {title}
                 </Text>

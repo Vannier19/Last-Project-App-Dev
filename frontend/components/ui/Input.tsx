@@ -1,21 +1,22 @@
 import React from 'react';
-import { StyleSheet, View, Text, TextInput, TextInputProps, useColorScheme, ViewStyle } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TextInputProps, useColorScheme, ViewStyle, TextStyle } from 'react-native';
 import { Colors } from '@/constants/theme';
 
 interface InputProps extends TextInputProps {
     label?: string;
     error?: string;
     containerStyle?: ViewStyle;
+    labelStyle?: TextStyle;
 }
 
-export function Input({ label, error, style, containerStyle, ...props }: InputProps) {
+export function Input({ label, error, style, containerStyle, labelStyle, ...props }: InputProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
     return (
         <View style={[styles.container, containerStyle]}>
             {label && (
-                <Text style={[styles.label, isDark && styles.labelDark]}>
+                <Text style={[styles.label, isDark && styles.labelDark, labelStyle]}>
                     {label}
                 </Text>
             )}

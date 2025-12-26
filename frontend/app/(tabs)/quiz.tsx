@@ -487,23 +487,34 @@ const styles = StyleSheet.create({
     optionButton: {
         padding: 16,
         backgroundColor: Colors.light.card,
-        borderRadius: 12,
+        borderRadius: 16, // Increased radius
         borderWidth: 2,
-        borderColor: 'transparent',
+        borderColor: '#E2E8F0', // Visible Slate-200 border
+        // Add shadow for better separation
+        shadowColor: '#94A3B8',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     optionButtonDark: {
         backgroundColor: Colors.dark.card,
+        borderColor: '#334155', // Slate-700
+        shadowColor: '#000',
     },
     optionSelected: {
         borderColor: Colors.light.tint,
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        backgroundColor: 'rgba(99, 102, 241, 0.08)',
+        shadowColor: Colors.light.tint,
+        shadowOpacity: 0.2,
     },
     optionText: {
-        fontSize: 15,
+        fontSize: 16, // Slightly larger
+        fontWeight: '500',
         color: Colors.light.text,
     },
     optionTextSelected: {
-        fontWeight: '600',
+        fontWeight: '700',
         color: Colors.light.tint,
     },
     // Result Styles

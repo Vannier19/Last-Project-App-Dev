@@ -118,55 +118,116 @@ export function GLBBSimulation() {
         return (
             <View style={styles.wideContainer}>
                 {/* Left Panel - Controls & Analysis */}
-                <View style={styles.leftPanel}>
-                    <Card style={styles.controlPanelWide}>
-                        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Parameters</Text>
-                        <View style={styles.inputsRowWide}>
-                            <Input
-                                containerStyle={styles.inputFlex}
-                                label="v₀ [m/s]"
-                                keyboardType="numeric"
-                                value={velocity}
-                                onChangeText={setVelocity}
-                                editable={!isPlaying}
-                            />
-                            <Input
-                                containerStyle={styles.inputFlex}
-                                label="a [m/s²]"
-                                keyboardType="numeric"
-                                value={acceleration}
-                                onChangeText={setAcceleration}
-                                editable={!isPlaying}
-                            />
-                        </View>
-
-                        <View style={styles.controlsRowWide}>
-                            <Button
-                                title={isPlaying ? "Pause" : "Start"}
-                                onPress={startSimulation}
-                                style={{ flex: 1, marginRight: 8 }}
-                            />
-                            <Button
-                                title="Reset"
-                                variant="secondary"
-                                onPress={resetSimulation}
-                                style={{ flex: 1 }}
-                            />
-                        </View>
-                    </Card>
-
+                <View style={[styles.leftPanel, { height: 500 }]}>
                     <AnalysisPanel
                         time={time}
                         posX={posX}
                         posY={posY}
                         velX={velX}
                         velY={velY}
+                        forcedMode="dark"
+                        style={{
+                            flex: 1,
+                            marginTop: 0,
+                            borderWidth: 2,
+                            borderColor: '#64748B', // Slate-500
+                            borderRadius: 20,
+                            backgroundColor: '#475569', // Slate-600
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }}
                     />
+
+                    <Card style={[
+                        styles.controlPanelWide,
+                        {
+                            flex: 1,
+                            borderWidth: 2,
+                            borderColor: '#64748B', // Slate-500
+                            borderRadius: 20,
+                            justifyContent: 'space-between',
+                            padding: 24,
+                            backgroundColor: '#475569', // Slate-600
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }
+                    ]}>
+                        <View style={{ gap: 16 }}>
+                            <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>Parameters</Text>
+                            <View style={styles.inputsRowWide}>
+                                <Input
+                                    containerStyle={styles.inputFlex}
+                                    label="v₀ [m/s]"
+                                    keyboardType="numeric"
+                                    value={velocity}
+                                    onChangeText={setVelocity}
+                                    editable={!isPlaying}
+                                    labelStyle={{ color: '#E2E8F0' }}
+                                    style={{ color: '#FFFFFF', backgroundColor: '#64748B', borderColor: '#94A3B8' }}
+                                />
+                                <Input
+                                    containerStyle={styles.inputFlex}
+                                    label="a [m/s²]"
+                                    keyboardType="numeric"
+                                    value={acceleration}
+                                    onChangeText={setAcceleration}
+                                    editable={!isPlaying}
+                                    labelStyle={{ color: '#E2E8F0' }}
+                                    style={{ color: '#FFFFFF', backgroundColor: '#64748B', borderColor: '#94A3B8' }}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.controlsRowWide}>
+                            <Button
+                                title={isPlaying ? "Pause" : "Start"}
+                                onPress={startSimulation}
+                                style={{ flex: 1, marginRight: 12, minHeight: 48 }}
+                            />
+                            <Button
+                                title="Reset"
+                                variant="secondary"
+                                onPress={resetSimulation}
+                                style={{ flex: 1, minHeight: 48, backgroundColor: '#64748B', borderWidth: 0 }}
+                                textStyle={{ color: '#FFFFFF' }}
+                            />
+                        </View>
+                    </Card>
                 </View>
 
                 {/* Right Panel - Simulation Area */}
                 <View style={styles.rightPanel}>
-                    <View style={[styles.trackContainerWide, isDark && styles.trackContainerDark]}>
+                    <View style={[
+                        styles.trackContainerWide,
+                        isDark && styles.trackContainerDark,
+                        {
+                            height: 500,
+                            borderWidth: 2,
+                            borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#9DA4B0', // Keep light border for white card
+                            borderRadius: 20,
+                            backgroundColor: '#FFFFFF',
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.15,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }
+                    ]}>
+                        {/* Grid Component Reuse Logic Needed - adding simplified grid inline or import if shared */}
+                        <View style={[StyleSheet.absoluteFill, styles.gridContainer]} pointerEvents="none">
+                            {[...Array(11)].map((_, i) => (
+                                <View key={`v-${i}`} style={[styles.gridLineVertical, { left: `${i * 10}%` }, isDark && styles.gridLineDark]} />
+                            ))}
+                            {[...Array(6)].map((_, i) => (
+                                <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: `${i * 20}%` }, isDark && styles.gridLineDark]} />
+                            ))}
+                        </View>
                         <Ruler />
                         <Animated.View style={[styles.object, animatedStyle]}>
                             <Image
@@ -361,5 +422,26 @@ const styles = StyleSheet.create({
     carImage: {
         width: '100%',
         height: '100%',
+    },
+    // Grid Styles
+    gridContainer: {
+        zIndex: 0,
+    },
+    gridLineVertical: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: 1,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    gridLineHorizontal: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 1,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    gridLineDark: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
     }
 });

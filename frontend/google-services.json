@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "796874701938",
+    "project_id": "virtual-lab-fisics-app-debb3",
+    "storage_bucket": "virtual-lab-fisics-app-debb3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:796874701938:android:a08d1270b78ee7b2fe56eb",
+        "android_client_info": {
+          "package_name": "com.virtuallab.physics"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "796874701938-g84go4u241b2e27ofjr5jespd2msivfv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.virtuallab.physics",
+            "certificate_hash": "4a630daaaf2af553d26c10c0f87c92153d04e171"
+          }
+        },
+        {
+          "client_id": "796874701938-i3g9ia6aoki6ravsa2qm018nmhatg6jg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkJVua7eJYLTERecbE18SXaqaO5t7kiTw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "796874701938-i3g9ia6aoki6ravsa2qm018nmhatg6jg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "796874701938-hvjmtu5gbovsjn7ibf4h6gpobjfhup2i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "host.exp.exponent"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -21,7 +21,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.virtuallab.physics"
+      "package": "com.virtuallab.physics",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",
@@ -30,6 +31,7 @@
       "name": "Virtual Physics Laboratory"
     },
     "plugins": [
+      "@react-native-google-signin/google-signin",
       "expo-router",
       [
         "expo-splash-screen",
@@ -51,9 +53,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5cc32635-1668-41fd-9bc2-f608f95b1dfb"
+        "projectId": "b62376b0-918d-487f-858a-f00e155f5493"
       }
     },
-    "owner": "kanata08"
+    "owner": "kanata423341"
   }
 }

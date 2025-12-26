@@ -72,12 +72,23 @@ const FeatureCard = ({ sim, isDark, isWide, onPress }: any) => (
   </HoverableCard>
 );
 
-export default function HomeScreen() {
+interface HomeScreenProps {
+  requestedSimulation?: string | null;
+}
+
+export default function HomeScreen({ requestedSimulation }: HomeScreenProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const { width } = useWindowDimensions();
   const isWide = width > 768;
   const [currentScreen, setCurrentScreen] = useState<'dashboard' | 'glb' | 'glbb' | 'vertical' | 'parabola'>('dashboard');
+
+  // React to requestedSimulation changes
+  React.useEffect(() => {
+    if (requestedSimulation) {
+      setCurrentScreen(requestedSimulation as any);
+    }
+  }, [requestedSimulation]);
 
   const renderDashboard = () => (
     <ScrollView contentContainerStyle={[styles.scrollContent, isWide && styles.scrollContentWide]}>

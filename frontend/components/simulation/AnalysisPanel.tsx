@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TextInput, ViewStyle, StyleProp } from 'react-native';
 import Animated, { useAnimatedProps, SharedValue } from 'react-native-reanimated';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -45,14 +45,16 @@ export interface AnalysisPanelProps {
     posY: SharedValue<number>;
     velX: SharedValue<number>;
     velY: SharedValue<number>;
+    style?: StyleProp<ViewStyle>;
+    forcedMode?: 'light' | 'dark';
 }
 
-export function AnalysisPanel({ time, posX, posY, velX, velY }: AnalysisPanelProps) {
+export function AnalysisPanel({ time, posX, posY, velX, velY, style, forcedMode }: AnalysisPanelProps) {
     const colorScheme = useColorScheme();
-    const isDark = colorScheme === 'dark';
+    const isDark = forcedMode ? forcedMode === 'dark' : colorScheme === 'dark';
 
     return (
-        <View style={[styles.container, isDark && styles.containerDark]}>
+        <View style={[styles.container, isDark && styles.containerDark, style]}>
             <Text style={[styles.title, isDark && styles.textDark]}>Real-time Analysis</Text>
             <View style={styles.grid}>
                 <AnalysisItem label="Time" unit="s" value={time} isDark={isDark} />

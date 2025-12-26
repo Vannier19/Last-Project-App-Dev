@@ -34,7 +34,7 @@ export function GLBSimulation() {
                 console.log('Failed to mark lab progress:', error);
             }
         };
-        
+
         markInProgress();
     }, []); // Run once on mount
 
@@ -104,51 +104,131 @@ export function GLBSimulation() {
         </View>
     );
 
+    // Grid Background Component
+    const Grid = () => (
+        <View style={[StyleSheet.absoluteFill, styles.gridContainer]} pointerEvents="none">
+            {/* Vertical Lines (every 10%) */}
+            {[...Array(11)].map((_, i) => (
+                <View
+                    key={`v-${i}`}
+                    style={[
+                        styles.gridLineVertical,
+                        { left: `${i * 10}%` },
+                        isDark && styles.gridLineDark
+                    ]}
+                />
+            ))}
+            {/* Horizontal Lines (every 20%) */}
+            {[...Array(6)].map((_, i) => (
+                <View
+                    key={`h-${i}`}
+                    style={[
+                        styles.gridLineHorizontal,
+                        { top: `${i * 20}%` },
+                        isDark && styles.gridLineDark
+                    ]}
+                />
+            ))}
+        </View>
+    );
+
     // Desktop: Side-by-side layout
     if (isWide) {
         return (
             <View style={styles.wideContainer}>
-                {/* Left Panel - Controls */}
-                <View style={styles.leftPanel}>
-                    <Card style={styles.controlPanelWide}>
-                        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Parameters</Text>
-                        <Input
-                            label="Velocity (v) [m/s]"
-                            keyboardType="numeric"
-                            value={velocity}
-                            onChangeText={setVelocity}
-                            editable={!isPlaying}
-                        />
+                {/* Left Panel - Controls & Info */}
+                <View style={[styles.leftPanel, { height: 500 }]}>
+                    <Card style={[
+                        styles.infoCard,
+                        {
+                            flex: 1,
+                            borderWidth: 2,
+                            borderColor: '#64748B', // Slate-500
+                            borderRadius: 20,
+                            justifyContent: 'center',
+                            backgroundColor: '#475569', // Slate-600
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }
+                    ]}>
+                        <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>Real-time Values</Text>
+                        <Text style={[styles.infoText, { color: '#E2E8F0' }]}>
+                            Velocity: {velocity} m/s (constant)
+                        </Text>
+                        <Text style={[styles.infoText, { color: '#E2E8F0' }]}>
+                            Formula: s = v × t
+                        </Text>
+                    </Card>
+
+                    <Card style={[
+                        styles.controlPanelWide,
+                        {
+                            flex: 1,
+                            borderWidth: 2,
+                            borderColor: '#64748B', // Slate-500
+                            borderRadius: 20,
+                            justifyContent: 'space-between',
+                            padding: 24,
+                            backgroundColor: '#475569', // Slate-600
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.25,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }
+                    ]}>
+                        <View style={{ gap: 16 }}>
+                            <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>Parameters</Text>
+                            <Input
+                                label="Velocity (v) [m/s]"
+                                keyboardType="numeric"
+                                value={velocity}
+                                onChangeText={setVelocity}
+                                editable={!isPlaying}
+                                labelStyle={{ color: '#E2E8F0' }}
+                                style={{ color: '#FFFFFF', backgroundColor: '#64748B', borderColor: '#94A3B8' }}
+                            />
+                        </View>
 
                         <View style={styles.controlsRowWide}>
                             <Button
                                 title={isPlaying ? "Pause" : "Start"}
                                 onPress={startSimulation}
-                                style={{ flex: 1, marginRight: 8 }}
+                                style={{ flex: 1, marginRight: 12, minHeight: 48 }}
                             />
                             <Button
                                 title="Reset"
                                 variant="secondary"
                                 onPress={resetSimulation}
-                                style={{ flex: 1 }}
+                                style={{ flex: 1, minHeight: 48, backgroundColor: '#64748B', borderWidth: 0 }}
+                                textStyle={{ color: '#FFFFFF' }}
                             />
                         </View>
-                    </Card>
-
-                    <Card style={styles.infoCard}>
-                        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Real-time Values</Text>
-                        <Text style={[styles.infoText, isDark && styles.textSecondaryDark]}>
-                            Velocity: {velocity} m/s (constant)
-                        </Text>
-                        <Text style={[styles.infoText, isDark && styles.textSecondaryDark]}>
-                            Formula: s = v × t
-                        </Text>
                     </Card>
                 </View>
 
                 {/* Right Panel - Simulation Area */}
                 <View style={styles.rightPanel}>
-                    <View style={[styles.trackContainerWide, isDark && styles.trackContainerDark]}>
+                    <View style={[
+                        styles.trackContainerWide,
+                        isDark && styles.trackContainerDark,
+                        {
+                            height: 500,
+                            borderWidth: 2,
+                            borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#9DA4B0', // Keep light border for white card
+                            borderRadius: 20,
+                            backgroundColor: '#FFFFFF',
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.15,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }
+                    ]}>
+                        <Grid />
                         <Ruler />
                         <Animated.View style={[styles.object, animatedStyle]}>
                             <Image
@@ -190,6 +270,7 @@ export function GLBSimulation() {
             </Card>
 
             <View style={[styles.trackContainer, isDark && styles.trackContainerDark]}>
+                <Grid />
                 <Ruler />
                 <Animated.View style={[styles.object, animatedStyle]}>
                     <Image
@@ -323,5 +404,26 @@ const styles = StyleSheet.create({
     carImage: {
         width: '100%',
         height: '100%',
+    },
+    // Grid Styles
+    gridContainer: {
+        zIndex: 0,
+    },
+    gridLineVertical: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: 1,
+        backgroundColor: 'rgba(0,0,0,0.05)', // Very subtle light mode grid
+    },
+    gridLineHorizontal: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 1,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    gridLineDark: {
+        backgroundColor: 'rgba(255,255,255,0.05)', // Very subtle dark mode grid
     }
 });

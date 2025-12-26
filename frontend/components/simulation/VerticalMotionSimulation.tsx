@@ -90,44 +90,94 @@ export function VerticalMotionSimulation() {
         return (
             <View style={styles.wideContainer}>
                 {/* Left Panel - Controls & Analysis */}
-                <View style={styles.leftPanel}>
-                    <Card style={styles.controlPanelWide}>
-                        <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Parameters</Text>
-                        <Input
-                            label="Initial Velocity (v₀) [m/s]"
-                            keyboardType="numeric"
-                            value={velocity}
-                            onChangeText={setVelocity}
-                            editable={!isPlaying}
-                        />
-
-                        <View style={styles.controlsRowWide}>
-                            <Button
-                                title={isPlaying ? "Pause" : "Throw Up"}
-                                onPress={startSimulation}
-                                style={{ flex: 1, marginRight: 8 }}
-                            />
-                            <Button
-                                title="Reset"
-                                variant="secondary"
-                                onPress={resetSimulation}
-                                style={{ flex: 1 }}
-                            />
-                        </View>
-                    </Card>
-
+                <View style={[styles.leftPanel, { height: 500 }]}>
                     <AnalysisPanel
                         time={time}
                         posX={posX}
                         posY={posY}
                         velX={velX}
                         velY={velY}
+                        forcedMode="dark"
+                        style={{
+                            flex: 1,
+                            marginTop: 0,
+                            borderWidth: 2,
+                            borderColor: '#475569', // Slate-600
+                            borderRadius: 20,
+                            backgroundColor: '#334155', // Slate-700 (Lighter Dark Gray)
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }}
                     />
+
+                    <Card style={[
+                        styles.controlPanelWide,
+                        {
+                            flex: 1,
+                            borderWidth: 2,
+                            borderColor: '#475569', // Slate-600
+                            borderRadius: 20,
+                            justifyContent: 'space-between',
+                            padding: 24,
+                            backgroundColor: '#334155', // Slate-700
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }
+                    ]}>
+                        <View style={{ gap: 16 }}>
+                            <Text style={[styles.sectionTitle, { color: '#FFFFFF' }]}>Parameters</Text>
+                            <Input
+                                label="Initial Velocity (v₀) [m/s]"
+                                keyboardType="numeric"
+                                value={velocity}
+                                onChangeText={setVelocity}
+                                editable={!isPlaying}
+                                labelStyle={{ color: '#CBD5E1' }} // Slate-300
+                                style={{ color: '#FFFFFF', backgroundColor: '#475569', borderColor: '#64748B' }} // Slate-600 background
+                            />
+                        </View>
+
+                        <View style={styles.controlsRowWide}>
+                            <Button
+                                title={isPlaying ? "Pause" : "Throw Up"}
+                                onPress={startSimulation}
+                                style={{ flex: 1, marginRight: 12, height: 50 }}
+                            />
+                            <Button
+                                title="Reset"
+                                variant="secondary"
+                                onPress={resetSimulation}
+                                style={{ flex: 1, height: 50, backgroundColor: '#475569', borderWidth: 0 }} // Slate-600
+                                textStyle={{ color: '#FFFFFF' }}
+                            />
+                        </View>
+                    </Card>
                 </View>
 
                 {/* Right Panel - Simulation Area */}
                 <View style={styles.rightPanel}>
-                    <View style={[styles.trackContainerWide, isDark && styles.trackContainerDark]}>
+                    <View style={[
+                        styles.trackContainerWide,
+                        isDark && styles.trackContainerDark,
+                        {
+                            height: 500,
+                            borderWidth: 2,
+                            borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#9DA4B0', // Keep light gray border for white card
+                            borderRadius: 20,
+                            backgroundColor: '#FFFFFF', // Keep White
+                            shadowColor: "#000",
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: 0.15,
+                            shadowRadius: 12,
+                            elevation: 8,
+                        }
+                    ]}>
                         <View style={styles.rulerContainer}>
                             {[0, 20, 40, 60, 80, 100].map(h => (
                                 <View key={h} style={[styles.rulerMark, { bottom: h * 3.5 }]} />

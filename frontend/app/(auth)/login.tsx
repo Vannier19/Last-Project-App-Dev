@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
+
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Button } from '@/components/ui/Button';
@@ -12,12 +11,8 @@ import { Card } from '@/components/ui/Card';
 import { signIn, auth, GoogleAuthProvider, signInWithPopup, signInWithCredential } from '@/services/firebase';
 import api from '@/services/api';
 
-// Complete auth session for web
-if (Platform.OS === 'web') {
-    // No need for WebBrowser on web
-} else {
-    WebBrowser.maybeCompleteAuthSession();
-}
+// Import Google Sign-In Native Library
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 export default function LoginScreen() {
     const colorScheme = useColorScheme();
@@ -28,48 +23,18 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // For native (iOS/Android) Google Sign-In
-    const [request, response, promptAsync] = Google.useAuthRequest({
-        iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-        androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    });
+    // Hardcoded Web Client ID to ensure no environment variable issues during build
+    // Matches the ID in google-services.json (client_type: 3)
+    const WEB_CLIENT_ID = '796874701938-i3g9ia6aoki6ravsa2qm018nmhatg6jg.apps.googleusercontent.com';
 
-    // Handle native Google auth response
+    // Configure Google Sign-In
     useEffect(() => {
-        if (response?.type === 'success') {
-            const { id_token } = response.params;
-            if (id_token) {
-                const credential = GoogleAuthProvider.credential(id_token);
-                handleNativeGoogleSignIn(credential);
-            } else if (response.authentication?.idToken) {
-                const credential = GoogleAuthProvider.credential(response.authentication.idToken);
-                handleNativeGoogleSignIn(credential);
-            } else {
-                Alert.alert('Error', 'Could not get ID token from Google');
-            }
+        if (Platform.OS !== 'web') {
+            GoogleSignin.configure({
+                webClientId: WEB_CLIENT_ID,
+            });
         }
-    }, [response]);
-
-    // Native (iOS/Android) Google Sign-In handler
-    const handleNativeGoogleSignIn = async (credential: any) => {
-        setLoading(true);
-        try {
-            const userCredential = await signInWithCredential(auth, credential);
-            const token = await userCredential.user.getIdToken();
-            console.log('✅ Google Firebase login success:', userCredential.user.email);
-
-            await api.syncUser(token);
-            console.log('✅ Backend sync success');
-
-            router.replace('/(tabs)/main');
-        } catch (error: any) {
-            console.error('❌ Google Login error:', error);
-            Alert.alert('Google Login Failed', error.message || 'An error occurred');
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, []);
 
     // Platform-specific Google Sign-In
     const handleGoogleSignIn = async () => {
@@ -80,7 +45,7 @@ export default function LoginScreen() {
                 const provider = new GoogleAuthProvider();
                 const result = await signInWithPopup(auth, provider);
                 const token = await result.user.getIdToken();
-                console.log('✅ Google Firebase login success:', result.user.email);
+                console.log('✅ Google Firebase login success (Web):', result.user.email);
 
                 await api.syncUser(token);
                 console.log('✅ Backend sync success');
@@ -93,8 +58,43 @@ export default function LoginScreen() {
                 setLoading(false);
             }
         } else {
-            // Native (iOS/Android): Use expo-auth-session
-            promptAsync();
+            // Native (iOS/Android): Use @react-native-google-signin
+            setLoading(true);
+            try {
+                await GoogleSignin.hasPlayServices();
+                const response = await GoogleSignin.signIn();
+
+                if (response.type === 'success' && response.data?.idToken) {
+                    const idToken = response.data.idToken;
+                    const credential = GoogleAuthProvider.credential(idToken);
+
+                    // Sign in to Firebase
+                    const userCredential = await signInWithCredential(auth, credential);
+                    const token = await userCredential.user.getIdToken();
+                    console.log('✅ Google Firebase login success (Native):', userCredential.user.email);
+
+                    await api.syncUser(token);
+                    console.log('✅ Backend sync success');
+
+                    router.replace('/(tabs)/main');
+                } else {
+                    // Handle cancellation or no token
+                    console.log('Google Sign-In was cancelled or failed to return ID token');
+                }
+            } catch (error: any) {
+                if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+                    console.log('User cancelled the login flow');
+                } else if (error.code === statusCodes.IN_PROGRESS) {
+                    console.log('Sign in is in progress already');
+                } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+                    Alert.alert('Error', 'Google Play Services not available');
+                } else {
+                    console.error('❌ Google Login error:', error);
+                    Alert.alert('Google Login Failed', error.message || 'An error occurred');
+                }
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
@@ -238,5 +238,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '600',
         color: Colors.light.tint,
+        backgroundColor: 'transparent',
     },
 });

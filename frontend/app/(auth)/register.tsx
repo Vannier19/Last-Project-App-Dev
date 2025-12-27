@@ -62,12 +62,12 @@ export default function RegisterScreen() {
                 code: error.code,
                 name: error.name
             });
-            
+
             // Show error message in UI
             const errorMsg = error.message || 'Terjadi kesalahan saat registrasi';
             setErrorMessage(errorMsg);
             console.log('🚨 Error message set:', errorMsg);
-            
+
             // Also show Alert for mobile
             if (Platform.OS !== 'web') {
                 Alert.alert(
@@ -100,7 +100,7 @@ export default function RegisterScreen() {
                             <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
                         </View>
                     ) : null}
-                    
+
                     <Input
                         label="Full Name"
                         placeholder="Enter your full name"
@@ -125,6 +125,9 @@ export default function RegisterScreen() {
                         secureTextEntry
                         textContentType="newPassword"
                     />
+                    <Text style={[styles.passwordHint, isDark && styles.textSecondaryDark]}>
+                        Password must be at least 6 characters
+                    </Text>
 
                     <Button
                         title="Sign Up"
@@ -215,5 +218,11 @@ const styles = StyleSheet.create({
         color: '#c00',
         fontSize: 14,
         fontWeight: '500',
+    },
+    passwordHint: {
+        fontSize: 12,
+        color: '#888',
+        marginTop: 4,
+        marginBottom: 8,
     },
 });

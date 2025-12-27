@@ -171,7 +171,8 @@ export default function ProfileScreen() {
                     title="Log Out"
                     variant="secondary"
                     onPress={handleLogout}
-                    style={{ marginTop: 24 }}
+                    style={{ marginTop: 24, backgroundColor: '#EF4444' }}
+                    textStyle={{ color: '#FFFFFF' }}
                 />
             </ScrollView>
         </SafeAreaView>

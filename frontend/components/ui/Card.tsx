@@ -18,15 +18,15 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.light.card, // Neumorphism BG
         borderRadius: 20, // Larger radius
         padding: 24,
-        // Neumorphism Shadow: Light Mode
-        shadowColor: Colors.light.border,
+        // Neumorphism Shadow: Light Mode (Enhanced)
+        shadowColor: '#a3b1c6',
         shadowOffset: {
             width: 8,
             height: 8,
         },
-        shadowOpacity: 0.5,
+        shadowOpacity: 0.6,
         shadowRadius: 16,
-        elevation: 5,
+        elevation: 8,
     },
     cardDark: {
         backgroundColor: Colors.dark.card,

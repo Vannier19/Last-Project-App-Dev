@@ -185,10 +185,10 @@ export default function HomeScreen({ requestedSimulation }: HomeScreenProps) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       {currentScreen === 'dashboard' ? renderDashboard() : renderSimulation()}
-    </SafeAreaView>
+    </View>
   );
 }
 

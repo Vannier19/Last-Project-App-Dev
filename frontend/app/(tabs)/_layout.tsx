@@ -17,13 +17,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: Colors[colorScheme ?? 'light'].card,
-          borderTopWidth: 0,
-          elevation: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
+          display: 'none', // Hide system tab bar - we use custom NavTab in main.tsx
         },
       }}>
       {/* Main screen with custom top navigation */}

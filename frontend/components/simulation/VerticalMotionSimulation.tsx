@@ -102,12 +102,12 @@ export function VerticalMotionSimulation() {
                             flex: 1,
                             marginTop: 0,
                             borderWidth: 2,
-                            borderColor: '#475569', // Slate-600
+                            borderColor: '#64748B', // Slate-500
                             borderRadius: 20,
-                            backgroundColor: '#334155', // Slate-700 (Lighter Dark Gray)
+                            backgroundColor: '#475569', // Slate-600
                             shadowColor: "#000",
                             shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.3,
+                            shadowOpacity: 0.25,
                             shadowRadius: 12,
                             elevation: 8,
                         }}
@@ -118,14 +118,14 @@ export function VerticalMotionSimulation() {
                         {
                             flex: 1,
                             borderWidth: 2,
-                            borderColor: '#475569', // Slate-600
+                            borderColor: '#64748B', // Slate-500
                             borderRadius: 20,
                             justifyContent: 'space-between',
                             padding: 24,
-                            backgroundColor: '#334155', // Slate-700
+                            backgroundColor: '#475569', // Slate-600
                             shadowColor: "#000",
                             shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.3,
+                            shadowOpacity: 0.25,
                             shadowRadius: 12,
                             elevation: 8,
                         }
@@ -138,8 +138,8 @@ export function VerticalMotionSimulation() {
                                 value={velocity}
                                 onChangeText={setVelocity}
                                 editable={!isPlaying}
-                                labelStyle={{ color: '#CBD5E1' }} // Slate-300
-                                style={{ color: '#FFFFFF', backgroundColor: '#475569', borderColor: '#64748B' }} // Slate-600 background
+                                labelStyle={{ color: '#E2E8F0' }}
+                                style={{ color: '#FFFFFF', backgroundColor: '#64748B', borderColor: '#94A3B8' }}
                             />
                         </View>
 
@@ -153,7 +153,7 @@ export function VerticalMotionSimulation() {
                                 title="Reset"
                                 variant="secondary"
                                 onPress={resetSimulation}
-                                style={{ flex: 1, height: 50, backgroundColor: '#475569', borderWidth: 0 }} // Slate-600
+                                style={{ flex: 1, height: 50, backgroundColor: '#64748B', borderWidth: 0 }} // Slate-600
                                 textStyle={{ color: '#FFFFFF' }}
                             />
                         </View>

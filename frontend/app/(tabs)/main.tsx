@@ -149,56 +149,60 @@ export default function MainAppWithTopNav() {
 
             {/* Navigation Tabs */}
             <View style={[styles.navContainer, isDark && styles.navContainerDark, { zIndex: 100 }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: isWide ? 24 : 16 }}>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ gap: isWide ? 12 : 8, overflow: 'visible' }}
-                        style={{ overflow: 'visible' }}
-                    >
-                        {tabs.map(tab => (
-                            <View key={tab.key} style={{ zIndex: tab.key === 'lab' ? 10 : 1 }}>
-                                <NavTab
-                                    label={tab.label}
-                                    icon={tab.icon}
-                                    isActive={activeTab === tab.key}
-                                    isDark={isDark}
-                                    isWide={isWide}
-                                    onPress={() => setActiveTab(tab.key)}
-                                    onHoverIn={tab.key === 'lab' ? () => setHoveredTab('lab') : undefined}
-                                    onHoverOut={tab.key === 'lab' ? () => setHoveredTab(null) : undefined}
-                                />
-                                {/* Dropdown Menu for Lab */}
-                                {tab.key === 'lab' && hoveredTab === 'lab' && (
-                                    <View
-                                        style={[styles.dropdownMenu, isDark && styles.dropdownMenuDark]}
-                                        {...Platform.select({
-                                            web: {
-                                                onMouseEnter: () => setHoveredTab('lab'),
-                                                onMouseLeave: () => setHoveredTab(null)
-                                            }
-                                        })}
-                                    >
-                                        {[
-                                            { label: 'Uniform Linear Motion (GLB)', key: 'glb' },
-                                            { label: 'Uniform Accelerated Motion (GLBB)', key: 'glbb' },
-                                            { label: 'Vertical Motion', key: 'vertical' },
-                                            { label: 'Projectile Motion', key: 'parabola' }
-                                        ].map((item) => (
-                                            <TouchableOpacity
-                                                key={item.key}
-                                                style={[styles.dropdownItem, isDark && styles.dropdownItemDark]}
-                                                onPress={() => handleSelectSimulation(item.key)}
-                                            >
-                                                <Text style={[styles.dropdownText, isDark && styles.dropdownTextDark]}>{item.label}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                )}
-                            </View>
-                        ))}
-                    </ScrollView>
-                </View>
+                <ScrollView
+                    horizontal
+                    scrollEnabled={true}
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{
+                        gap: isWide ? 12 : 8,
+                        paddingVertical: 10,
+                        paddingHorizontal: isWide ? 24 : 16,
+                        alignItems: 'center',
+                    }}
+                    style={{ flexGrow: 0 }}
+                >
+                    {tabs.map(tab => (
+                        <View key={tab.key} style={{ zIndex: tab.key === 'lab' ? 10 : 1 }}>
+                            <NavTab
+                                label={tab.label}
+                                icon={tab.icon}
+                                isActive={activeTab === tab.key}
+                                isDark={isDark}
+                                isWide={isWide}
+                                onPress={() => setActiveTab(tab.key)}
+                                onHoverIn={tab.key === 'lab' ? () => setHoveredTab('lab') : undefined}
+                                onHoverOut={tab.key === 'lab' ? () => setHoveredTab(null) : undefined}
+                            />
+                            {/* Dropdown Menu for Lab */}
+                            {tab.key === 'lab' && hoveredTab === 'lab' && (
+                                <View
+                                    style={[styles.dropdownMenu, isDark && styles.dropdownMenuDark]}
+                                    {...Platform.select({
+                                        web: {
+                                            onMouseEnter: () => setHoveredTab('lab'),
+                                            onMouseLeave: () => setHoveredTab(null)
+                                        }
+                                    })}
+                                >
+                                    {[
+                                        { label: 'Uniform Linear Motion (GLB)', key: 'glb' },
+                                        { label: 'Uniform Accelerated Motion (GLBB)', key: 'glbb' },
+                                        { label: 'Vertical Motion', key: 'vertical' },
+                                        { label: 'Projectile Motion', key: 'parabola' }
+                                    ].map((item) => (
+                                        <TouchableOpacity
+                                            key={item.key}
+                                            style={[styles.dropdownItem, isDark && styles.dropdownItemDark]}
+                                            onPress={() => handleSelectSimulation(item.key)}
+                                        >
+                                            <Text style={[styles.dropdownText, isDark && styles.dropdownTextDark]}>{item.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
+                    ))}
+                </ScrollView>
             </View>
 
             {/* Content Area */}
@@ -280,13 +284,13 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.light.card,
         borderRadius: 12,
         padding: 8,
+        paddingTop: 12, // Visual spacing without breaking hover
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 12,
         elevation: 8,
         zIndex: 1000,
-        marginTop: 4,
     },
     dropdownMenuDark: {
         backgroundColor: '#1E293B', // Slate-800

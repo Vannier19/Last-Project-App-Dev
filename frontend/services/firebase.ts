@@ -54,10 +54,10 @@ export const signIn = async (email: string, password: string) => {
     console.log('🔍 Firebase signIn error:', JSON.stringify(error, null, 2));
     console.log('🔍 Error code:', error.code);
     console.log('🔍 Error message:', error.message);
-    
+
     // Provide user-friendly error messages
     let errorMessage = 'Login gagal';
-    
+
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
       errorMessage = '❌ Email atau password salah';
     } else if (error.code === 'auth/user-not-found') {
@@ -78,7 +78,7 @@ export const signIn = async (email: string, password: string) => {
         errorMessage = `❌ ${error.message}`;
       }
     }
-    
+
     console.log('🔍 Final error message:', errorMessage);
     throw new Error(errorMessage);
   }
@@ -94,10 +94,10 @@ export const signUp = async (email: string, password: string) => {
     console.log('🔍 Firebase signUp error:', JSON.stringify(error, null, 2));
     console.log('🔍 Error code:', error.code);
     console.log('🔍 Error message:', error.message);
-    
+
     // Provide user-friendly error messages
     let errorMessage = 'Registrasi gagal';
-    
+
     // Handle Firebase error response format
     if (error.code === 'auth/email-already-in-use') {
       errorMessage = '❌ Email sudah terdaftar. Silakan gunakan email lain atau login.';
@@ -121,7 +121,7 @@ export const signUp = async (email: string, password: string) => {
         errorMessage = `❌ ${error.message}`;
       }
     }
-    
+
     console.log('🔍 Final error message:', errorMessage);
     throw new Error(errorMessage);
   }
@@ -141,6 +141,30 @@ export const getCurrentUser = (): User | null => {
 
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
+};
+
+// Profile Update Functions
+import { updateProfile as firebaseUpdateProfile, updatePassword as firebaseUpdatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+
+export const updateUserProfile = async (displayName: string) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error('No user logged in');
+
+  await firebaseUpdateProfile(user, { displayName });
+  return user;
+};
+
+export const updateUserPassword = async (currentPassword: string, newPassword: string) => {
+  const user = auth.currentUser;
+  if (!user || !user.email) throw new Error('No user logged in');
+
+  // Re-authenticate before password change
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+
+  // Update password
+  await firebaseUpdatePassword(user, newPassword);
+  return user;
 };
 
 export { auth, GoogleAuthProvider, signInWithCredential, signInWithPopup };

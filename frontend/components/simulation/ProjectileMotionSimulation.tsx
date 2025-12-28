@@ -9,6 +9,33 @@ import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+// ============================================
+// SIMULATION CONFIGURATION - Edit values here
+// ============================================
+const SIMULATION_CONFIG = {
+    // Initial velocity [m/s]
+    INITIAL_VELOCITY: '20',
+
+    // Initial angle [degrees]
+    INITIAL_ANGLE: '45',
+
+    // Gravity [m/s²]
+    GRAVITY: 9.8,
+
+    // Scale: 1 meter = how many pixels
+    METER_TO_PIXEL: 5,
+
+    // Red vertical axis (Y-axis at left edge)
+    RED_AXIS_LEFT: 35,
+
+    // Blue horizontal axis (X-axis at ground level)
+    BLUE_AXIS_BOTTOM: 20,
+
+    // Axis line colors
+    RED_AXIS_COLOR: '#EF4444',
+    BLUE_AXIS_COLOR: '#3B82F6',
+};
+
 export function ProjectileMotionSimulation() {
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? 'light';
@@ -16,12 +43,11 @@ export function ProjectileMotionSimulation() {
     const { width } = useWindowDimensions();
     const isWide = width > 768;
 
-    const [velocity, setVelocity] = useState('20');
-    const [angle, setAngle] = useState('45');
+    const [velocity, setVelocity] = useState(SIMULATION_CONFIG.INITIAL_VELOCITY);
+    const [angle, setAngle] = useState(SIMULATION_CONFIG.INITIAL_ANGLE);
     const [isPlaying, setIsPlaying] = useState(false);
 
-    const GRAVITY = 9.8;
-    const METER_TO_PIXEL = 5;
+    const { GRAVITY, METER_TO_PIXEL } = SIMULATION_CONFIG;
 
     // Shared Values
     const time = useSharedValue(0);
@@ -103,6 +129,37 @@ export function ProjectileMotionSimulation() {
             ],
         };
     });
+
+    // Grid component - percentage-based positioning (matching GLB style)
+    const gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+    const Grid = () => (
+        <View style={[StyleSheet.absoluteFill, styles.gridContainer]} pointerEvents="none">
+            {/* Vertical Lines (every 10%) */}
+            {[...Array(11)].map((_, i) => (
+                <View
+                    key={`v-${i}`}
+                    style={[styles.gridLineVertical, { left: `${i * 10}%`, backgroundColor: gridColor }]}
+                />
+            ))}
+            {/* Horizontal Lines (every 20%) */}
+            {[...Array(6)].map((_, i) => (
+                <View
+                    key={`h-${i}`}
+                    style={[styles.gridLineHorizontal, { top: `${i * 20}%`, backgroundColor: gridColor }]}
+                />
+            ))}
+        </View>
+    );
+
+    // Start Position Indicator Lines (Red vertical at left, Blue horizontal at bottom)
+    const StartPositionLines = () => (
+        <>
+            {/* Red vertical line (Y-axis at left edge) */}
+            <View style={[styles.startLineVertical, { left: SIMULATION_CONFIG.RED_AXIS_LEFT, backgroundColor: SIMULATION_CONFIG.RED_AXIS_COLOR }]} />
+            {/* Blue horizontal line (X-axis at ground level) */}
+            <View style={[styles.startLineHorizontal, { bottom: SIMULATION_CONFIG.BLUE_AXIS_BOTTOM, backgroundColor: SIMULATION_CONFIG.BLUE_AXIS_COLOR }]} />
+        </>
+    );
 
     // Desktop: Side-by-side layout
     if (isWide) {
@@ -200,16 +257,18 @@ export function ProjectileMotionSimulation() {
                         {
                             height: 500,
                             borderWidth: 2,
-                            borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#9DA4B0', // Keep light border for white card
+                            borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#9DA4B0',
                             borderRadius: 20,
-                            backgroundColor: '#FFFFFF',
+                            backgroundColor: isDark ? '#334155' : '#FFFFFF', // Slate-700 for dark mode
                             shadowColor: "#000",
                             shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.15,
+                            shadowOpacity: isDark ? 0.3 : 0.15,
                             shadowRadius: 12,
                             elevation: 8,
                         }
                     ]}>
+                        <Grid />
+                        <StartPositionLines />
                         <View style={styles.ground} />
                         <Animated.View style={[styles.object, animatedStyle]}>
                             <Image
@@ -263,6 +322,8 @@ export function ProjectileMotionSimulation() {
             </Card>
 
             <View style={[styles.trackContainer, isDark && styles.trackContainerDark]}>
+                <Grid />
+                <StartPositionLines />
                 <View style={styles.ground} />
 
                 <Animated.View style={[styles.object, animatedStyle]}>
@@ -319,7 +380,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     trackContainerDark: {
-        backgroundColor: Colors.dark.background,
+        backgroundColor: '#334155', // Slate-700 - medium dark gray
     },
     // Desktop Layout
     wideContainer: {
@@ -387,5 +448,36 @@ const styles = StyleSheet.create({
     objImage: {
         width: '100%',
         height: '100%',
-    }
+    },
+    // Grid Styles
+    gridContainer: {
+        zIndex: 0,
+    },
+    gridLineVertical: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: 1,
+    },
+    gridLineHorizontal: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 1,
+    },
+    // Start Position Indicator Styles
+    startLineVertical: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: 2,
+        zIndex: 1,
+    },
+    startLineHorizontal: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 2,
+        zIndex: 1,
+    },
 });

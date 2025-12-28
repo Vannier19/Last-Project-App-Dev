@@ -9,6 +9,30 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
 
+// ============================================
+// SIMULATION CONFIGURATION - Edit values here
+// ============================================
+const SIMULATION_CONFIG = {
+    // Scale: 1 meter = how many pixels
+    PIXELS_PER_METER: 10,
+
+    // Maximum distance to display (in meters)
+    MAX_DISTANCE: 100,
+
+    // Car initial position (translateX value)
+    CAR_START_X: 45,
+
+    // Red vertical axis (Y-axis) position from left edge
+    RED_AXIS_LEFT: 75,
+
+    // Blue horizontal axis (X-axis) position from top (percentage)
+    BLUE_AXIS_TOP: '50%' as const,
+
+    // Axis line colors
+    RED_AXIS_COLOR: '#EF4444',
+    BLUE_AXIS_COLOR: '#3B82F6',
+};
+
 export function GLBSimulation() {
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? 'light';
@@ -21,8 +45,10 @@ export function GLBSimulation() {
     const [velocity, setVelocity] = useState('10');
     const [isPlaying, setIsPlaying] = useState(false);
     const [completedRuns, setCompletedRuns] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [currentPosition, setCurrentPosition] = useState(0);
 
-    const position = useSharedValue(0);
+    const position = useSharedValue(SIMULATION_CONFIG.CAR_START_X);
 
     // Mark lab as in-progress on first interaction
     useEffect(() => {
@@ -82,9 +108,30 @@ export function GLBSimulation() {
 
     const resetSimulation = () => {
         cancelAnimation(position);
-        position.value = 0;
+        position.value = SIMULATION_CONFIG.CAR_START_X;
         setIsPlaying(false);
+        setCurrentTime(0);
+        setCurrentPosition(0);
     };
+
+    // Real-time position tracking
+    useEffect(() => {
+        let interval: NodeJS.Timeout | null = null;
+        if (isPlaying) {
+            const startTime = Date.now();
+            const startPos = currentPosition;
+            interval = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const v = parseFloat(velocity) || 10;
+                const newPos = startPos + v * elapsed;
+                setCurrentTime(currentTime + elapsed);
+                setCurrentPosition(Math.min(newPos, TRACK_WIDTH));
+            }, 100);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [isPlaying]);
 
     const animatedStyle = useAnimatedStyle(() => {
         return {
@@ -92,19 +139,9 @@ export function GLBSimulation() {
         };
     });
 
-    // Ruler component
-    const Ruler = () => (
-        <View style={styles.ruler}>
-            {[0, 25, 50, 75, 100].map((tick) => (
-                <View key={tick} style={styles.tickContainer}>
-                    <View style={[styles.tick, isDark && styles.tickDark]} />
-                    <Text style={[styles.tickLabel, isDark && styles.textDark]}>{tick}%</Text>
-                </View>
-            ))}
-        </View>
-    );
+    // Grid matching GLBB style - percentage-based positioning
+    const gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
 
-    // Grid Background Component
     const Grid = () => (
         <View style={[StyleSheet.absoluteFill, styles.gridContainer]} pointerEvents="none">
             {/* Vertical Lines (every 10%) */}
@@ -113,8 +150,7 @@ export function GLBSimulation() {
                     key={`v-${i}`}
                     style={[
                         styles.gridLineVertical,
-                        { left: `${i * 10}%` },
-                        isDark && styles.gridLineDark
+                        { left: `${i * 10}%`, backgroundColor: gridColor }
                     ]}
                 />
             ))}
@@ -124,12 +160,38 @@ export function GLBSimulation() {
                     key={`h-${i}`}
                     style={[
                         styles.gridLineHorizontal,
-                        { top: `${i * 20}%` },
-                        isDark && styles.gridLineDark
+                        { top: `${i * 20}%`, backgroundColor: gridColor }
                     ]}
                 />
             ))}
         </View>
+    );
+
+    // Start Position Indicator Lines (Red vertical, Blue horizontal with tick marks)
+    const StartPositionLines = () => (
+        <>
+            {/* Red vertical line (Y-axis) */}
+            <View style={[
+                styles.startLineVertical,
+                { left: SIMULATION_CONFIG.RED_AXIS_LEFT, backgroundColor: SIMULATION_CONFIG.RED_AXIS_COLOR }
+            ]} />
+            {/* Blue horizontal line (X-axis) with tick marks */}
+            <View style={[
+                styles.startLineHorizontal,
+                { top: SIMULATION_CONFIG.BLUE_AXIS_TOP, backgroundColor: SIMULATION_CONFIG.BLUE_AXIS_COLOR }
+            ]}>
+                {/* Tick marks on the blue axis line */}
+                {[0, 25, 50, 75, 100].map((percent) => (
+                    <View
+                        key={percent}
+                        style={[
+                            styles.axisTick,
+                            { left: `${percent}%` }
+                        ]}
+                    />
+                ))}
+            </View>
+        </>
     );
 
     // Desktop: Side-by-side layout
@@ -159,6 +221,12 @@ export function GLBSimulation() {
                             Velocity: {velocity} m/s (constant)
                         </Text>
                         <Text style={[styles.infoText, { color: '#E2E8F0' }]}>
+                            Position: {currentPosition.toFixed(1)} m
+                        </Text>
+                        <Text style={[styles.infoText, { color: '#E2E8F0' }]}>
+                            Time: {currentTime.toFixed(1)} s
+                        </Text>
+                        <Text style={[styles.infoText, { color: '#94A3B8', fontSize: 12, marginTop: 8 }]}>
                             Formula: s = v × t
                         </Text>
                     </Card>
@@ -218,18 +286,18 @@ export function GLBSimulation() {
                         {
                             height: 500,
                             borderWidth: 2,
-                            borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#9DA4B0', // Keep light border for white card
+                            borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#9DA4B0',
                             borderRadius: 20,
-                            backgroundColor: '#FFFFFF',
+                            backgroundColor: isDark ? '#334155' : '#FFFFFF', // Slate-700 for dark mode
                             shadowColor: "#000",
                             shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.15,
+                            shadowOpacity: isDark ? 0.3 : 0.15,
                             shadowRadius: 12,
                             elevation: 8,
                         }
                     ]}>
                         <Grid />
-                        <Ruler />
+                        <StartPositionLines />
                         <Animated.View style={[styles.object, animatedStyle]}>
                             <Image
                                 source={require('@/assets/images/car.png')}
@@ -271,7 +339,6 @@ export function GLBSimulation() {
 
             <View style={[styles.trackContainer, isDark && styles.trackContainerDark]}>
                 <Grid />
-                <Ruler />
                 <Animated.View style={[styles.object, animatedStyle]}>
                     <Image
                         source={require('@/assets/images/car.png')}
@@ -309,7 +376,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     trackContainerDark: {
-        backgroundColor: Colors.dark.background,
+        backgroundColor: '#334155', // Slate-700 - medium dark gray
     },
     // Desktop Layout
     wideContainer: {
@@ -358,7 +425,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.light.background,
         borderRadius: 20,
         justifyContent: 'center',
-        paddingHorizontal: 24,
+        paddingHorizontal: 0,
         overflow: 'hidden',
         shadowColor: '#a3b1c6',
         shadowOffset: { width: 6, height: 6 },
@@ -370,10 +437,9 @@ const styles = StyleSheet.create({
     ruler: {
         position: 'absolute',
         bottom: 20,
-        left: 20,
-        right: 20,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        left: 24, // Match paddingHorizontal of container - aligns 0m with car start
+        right: 24,
+        height: 30, // Fixed height for the ruler container
         zIndex: 1,
     },
     tickContainer: {
@@ -405,7 +471,6 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    // Grid Styles
     gridContainer: {
         zIndex: 0,
     },
@@ -414,16 +479,47 @@ const styles = StyleSheet.create({
         top: 0,
         bottom: 0,
         width: 1,
-        backgroundColor: 'rgba(0,0,0,0.05)', // Very subtle light mode grid
+        backgroundColor: 'rgba(0,0,0,0.1)', // Match GLBB grid style
     },
     gridLineHorizontal: {
         position: 'absolute',
         left: 0,
         right: 0,
         height: 1,
-        backgroundColor: 'rgba(0,0,0,0.05)',
+        backgroundColor: 'rgba(0,0,0,0.1)',
     },
     gridLineDark: {
-        backgroundColor: 'rgba(255,255,255,0.05)', // Very subtle dark mode grid
-    }
+        backgroundColor: 'rgba(255,255,255,0.15)', // Match GLBB grid style
+    },
+    // Start Position Indicator Styles
+    startLineVertical: {
+        position: 'absolute',
+        left: 30, // Match paddingHorizontal of container - where car actually starts
+        top: 0,
+        bottom: 0,
+        width: 2,
+        backgroundColor: '#EF4444', // Red for Y-axis
+        zIndex: 1,
+    },
+    startLineHorizontal: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: '50%',
+        height: 2,
+        backgroundColor: '#3B82F6', // Blue for X-axis
+        zIndex: 1,
+    },
+    startLineDark: {
+        // Colors are visible enough for dark mode
+    },
+    // Tick marks on the axis line
+    axisTick: {
+        position: 'absolute',
+        top: -8,
+        width: 2,
+        height: 18,
+        backgroundColor: '#3B82F6',
+        marginLeft: -1,
+    },
 });

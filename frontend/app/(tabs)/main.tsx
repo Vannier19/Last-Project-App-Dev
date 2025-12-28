@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -15,6 +16,8 @@ import QuizScreen from './quiz';
 import ProfileScreen from './profile';
 
 type TabKey = 'welcome' | 'lab' | 'materials' | 'quiz' | 'profile';
+
+const ACTIVE_TAB_KEY = '@activeTab';
 
 const tabs: { key: TabKey; label: string; icon: any }[] = [
     { key: 'welcome', label: 'Home', icon: 'house.fill' },
@@ -107,6 +110,33 @@ export default function MainAppWithTopNav() {
     const { width } = useWindowDimensions();
     const isWide = width > 768; // iPad/Desktop
 
+    // Load saved tab on mount
+    useEffect(() => {
+        const loadSavedTab = async () => {
+            try {
+                const savedTab = await AsyncStorage.getItem(ACTIVE_TAB_KEY);
+                if (savedTab && tabs.some(t => t.key === savedTab)) {
+                    setActiveTab(savedTab as TabKey);
+                }
+            } catch (error) {
+                console.log('Failed to load saved tab:', error);
+            }
+        };
+        loadSavedTab();
+    }, []);
+
+    // Save tab when it changes
+    useEffect(() => {
+        const saveTab = async () => {
+            try {
+                await AsyncStorage.setItem(ACTIVE_TAB_KEY, activeTab);
+            } catch (error) {
+                console.log('Failed to save tab:', error);
+            }
+        };
+        saveTab();
+    }, [activeTab]);
+
     const renderContent = () => {
         switch (activeTab) {
             case 'welcome':
@@ -128,6 +158,13 @@ export default function MainAppWithTopNav() {
         setRequestedLabSimulation(simKey);
         setActiveTab('lab');
         setHoveredTab(null);
+    };
+
+    const handleSelectQuiz = (topic: string) => {
+        // Navigate to quiz with the selected topic
+        setActiveTab('quiz');
+        setHoveredTab(null);
+        // Note: QuizScreen will need to handle topic selection internally
     };
 
     return (
@@ -158,11 +195,12 @@ export default function MainAppWithTopNav() {
                         paddingVertical: 10,
                         paddingHorizontal: isWide ? 24 : 16,
                         alignItems: 'center',
+                        overflow: 'visible',
                     }}
-                    style={{ flexGrow: 0 }}
+                    style={{ flexGrow: 0, overflow: 'visible' }}
                 >
                     {tabs.map(tab => (
-                        <View key={tab.key} style={{ zIndex: tab.key === 'lab' ? 10 : 1 }}>
+                        <View key={tab.key} style={{ zIndex: (tab.key === 'lab' || tab.key === 'quiz') ? 10 : 1 }}>
                             <NavTab
                                 label={tab.label}
                                 icon={tab.icon}
@@ -170,8 +208,8 @@ export default function MainAppWithTopNav() {
                                 isDark={isDark}
                                 isWide={isWide}
                                 onPress={() => setActiveTab(tab.key)}
-                                onHoverIn={tab.key === 'lab' ? () => setHoveredTab('lab') : undefined}
-                                onHoverOut={tab.key === 'lab' ? () => setHoveredTab(null) : undefined}
+                                onHoverIn={(tab.key === 'lab' || tab.key === 'quiz') ? () => setHoveredTab(tab.key) : undefined}
+                                onHoverOut={(tab.key === 'lab' || tab.key === 'quiz') ? () => setHoveredTab(null) : undefined}
                             />
                             {/* Dropdown Menu for Lab */}
                             {tab.key === 'lab' && hoveredTab === 'lab' && (
@@ -194,6 +232,33 @@ export default function MainAppWithTopNav() {
                                             key={item.key}
                                             style={[styles.dropdownItem, isDark && styles.dropdownItemDark]}
                                             onPress={() => handleSelectSimulation(item.key)}
+                                        >
+                                            <Text style={[styles.dropdownText, isDark && styles.dropdownTextDark]}>{item.label}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+                            {/* Dropdown Menu for Quiz */}
+                            {tab.key === 'quiz' && hoveredTab === 'quiz' && (
+                                <View
+                                    style={[styles.dropdownMenu, isDark && styles.dropdownMenuDark]}
+                                    {...Platform.select({
+                                        web: {
+                                            onMouseEnter: () => setHoveredTab('quiz'),
+                                            onMouseLeave: () => setHoveredTab(null)
+                                        }
+                                    })}
+                                >
+                                    {[
+                                        { label: 'GLB Quiz', key: 'glb' },
+                                        { label: 'GLBB Quiz', key: 'glbb' },
+                                        { label: 'Vertical Motion Quiz', key: 'vertikal' },
+                                        { label: 'Projectile Motion Quiz', key: 'parabola' }
+                                    ].map((item) => (
+                                        <TouchableOpacity
+                                            key={item.key}
+                                            style={[styles.dropdownItem, isDark && styles.dropdownItemDark]}
+                                            onPress={() => handleSelectQuiz(item.key)}
                                         >
                                             <Text style={[styles.dropdownText, isDark && styles.dropdownTextDark]}>{item.label}</Text>
                                         </TouchableOpacity>
@@ -270,6 +335,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.light.card,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(0,0,0,0.08)',
+        overflow: 'visible', // Allow dropdowns to show outside
+        zIndex: 100,
     },
     navContainerDark: {
         backgroundColor: Colors.dark.card,

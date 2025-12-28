@@ -119,15 +119,12 @@ export default function RegisterScreen() {
 
                     <Input
                         label="Password"
-                        placeholder="Create a strong password"
+                        placeholder="Min 6 characters"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
                         textContentType="newPassword"
                     />
-                    <Text style={[styles.passwordHint, isDark && styles.textSecondaryDark]}>
-                        Password must be at least 6 characters
-                    </Text>
 
                     <Button
                         title="Sign Up"

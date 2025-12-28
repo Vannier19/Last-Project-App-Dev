@@ -9,6 +9,34 @@ import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
+// ============================================
+// SIMULATION CONFIGURATION - Edit values here
+// ============================================
+const SIMULATION_CONFIG = {
+    // Initial velocity [m/s]
+    INITIAL_VELOCITY: '0',
+
+    // Initial acceleration [m/s²]
+    INITIAL_ACCELERATION: '2',
+
+    // Scale factors
+    PIXEL_TO_METER: 1 / 20,
+    METER_TO_PIXEL: 20,
+
+    // Car initial position (translateX value) - same as GLB
+    CAR_START_X: 25,
+
+    // Red vertical axis (Y-axis) position from left edge - same as GLB
+    RED_AXIS_LEFT: 75,
+
+    // Blue horizontal axis (X-axis) position from top (percentage) - same as GLB
+    BLUE_AXIS_TOP: '50%' as const,
+
+    // Axis line colors
+    RED_AXIS_COLOR: '#EF4444',
+    BLUE_AXIS_COLOR: '#3B82F6',
+};
+
 export function GLBBSimulation() {
     const colorScheme = useColorScheme();
     const theme = colorScheme ?? 'light';
@@ -19,12 +47,11 @@ export function GLBBSimulation() {
     const TRACK_WIDTH = isWide ? width * 0.5 : width - 64;
     const TRACK_CONTAINER_HEIGHT = isWide ? 300 : 180;
 
-    const [velocity, setVelocity] = useState('0');
-    const [acceleration, setAcceleration] = useState('2');
+    const [velocity, setVelocity] = useState(SIMULATION_CONFIG.INITIAL_VELOCITY);
+    const [acceleration, setAcceleration] = useState(SIMULATION_CONFIG.INITIAL_ACCELERATION);
     const [isPlaying, setIsPlaying] = useState(false);
 
-    const PIXEL_TO_METER = 1 / 20;
-    const METER_TO_PIXEL = 20;
+    const { PIXEL_TO_METER, METER_TO_PIXEL } = SIMULATION_CONFIG;
 
     const time = useSharedValue(0);
     const v0 = useDerivedValue(() => parseFloat(velocity) || 0);
@@ -97,20 +124,50 @@ export function GLBBSimulation() {
 
     const animatedStyle = useAnimatedStyle(() => {
         return {
-            transform: [{ translateX: Math.min(translateX.value, TRACK_WIDTH) }]
+            transform: [{ translateX: SIMULATION_CONFIG.CAR_START_X + Math.min(translateX.value, TRACK_WIDTH) }]
         };
     });
 
-    // Ruler component
-    const Ruler = () => (
-        <View style={styles.ruler}>
-            {[0, 25, 50, 75, 100].map((tick) => (
-                <View key={tick} style={styles.tickContainer}>
-                    <View style={[styles.tick, isDark && styles.tickDark]} />
-                    <Text style={[styles.tickLabel, isDark && styles.textDark]}>{tick}%</Text>
-                </View>
+    // Grid component - percentage-based positioning (same as GLB)
+    const gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+    const Grid = () => (
+        <View style={[StyleSheet.absoluteFill, styles.gridContainer]} pointerEvents="none">
+            {/* Vertical Lines (every 10%) */}
+            {[...Array(11)].map((_, i) => (
+                <View
+                    key={`v-${i}`}
+                    style={[styles.gridLineVertical, { left: `${i * 10}%`, backgroundColor: gridColor }]}
+                />
+            ))}
+            {/* Horizontal Lines (every 20%) */}
+            {[...Array(6)].map((_, i) => (
+                <View
+                    key={`h-${i}`}
+                    style={[styles.gridLineHorizontal, { top: `${i * 20}%`, backgroundColor: gridColor }]}
+                />
             ))}
         </View>
+    );
+
+    // Start Position Indicator Lines (Red vertical, Blue horizontal with tick marks)
+    const StartPositionLines = () => (
+        <>
+            {/* Red vertical line (Y-axis) */}
+            <View style={[styles.startLineVertical, { left: SIMULATION_CONFIG.RED_AXIS_LEFT, backgroundColor: SIMULATION_CONFIG.RED_AXIS_COLOR }]} />
+            {/* Blue horizontal line (X-axis) with tick marks */}
+            <View style={[styles.startLineHorizontal, { top: SIMULATION_CONFIG.BLUE_AXIS_TOP, backgroundColor: SIMULATION_CONFIG.BLUE_AXIS_COLOR }]}>
+                {/* Tick marks on the blue axis line */}
+                {[0, 25, 50, 75, 100].map((percent) => (
+                    <View
+                        key={percent}
+                        style={[
+                            styles.axisTick,
+                            { left: `${percent}%` }
+                        ]}
+                    />
+                ))}
+            </View>
+        </>
     );
 
     // Desktop: Side-by-side layout
@@ -209,26 +266,18 @@ export function GLBBSimulation() {
                         {
                             height: 500,
                             borderWidth: 2,
-                            borderColor: isDark ? 'rgba(255,255,255,0.3)' : '#9DA4B0', // Keep light border for white card
+                            borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#9DA4B0',
                             borderRadius: 20,
-                            backgroundColor: '#FFFFFF',
+                            backgroundColor: isDark ? '#334155' : '#FFFFFF', // Slate-700 for dark mode
                             shadowColor: "#000",
                             shadowOffset: { width: 0, height: 4 },
-                            shadowOpacity: 0.15,
+                            shadowOpacity: isDark ? 0.3 : 0.15,
                             shadowRadius: 12,
                             elevation: 8,
                         }
                     ]}>
-                        {/* Grid Component Reuse Logic Needed - adding simplified grid inline or import if shared */}
-                        <View style={[StyleSheet.absoluteFill, styles.gridContainer]} pointerEvents="none">
-                            {[...Array(11)].map((_, i) => (
-                                <View key={`v-${i}`} style={[styles.gridLineVertical, { left: `${i * 10}%` }, isDark && styles.gridLineDark]} />
-                            ))}
-                            {[...Array(6)].map((_, i) => (
-                                <View key={`h-${i}`} style={[styles.gridLineHorizontal, { top: `${i * 20}%` }, isDark && styles.gridLineDark]} />
-                            ))}
-                        </View>
-                        <Ruler />
+                        <Grid />
+                        <StartPositionLines />
                         <Animated.View style={[styles.object, animatedStyle]}>
                             <Image
                                 source={require('@/assets/images/car.png')}
@@ -280,7 +329,8 @@ export function GLBBSimulation() {
             </Card>
 
             <View style={[styles.trackContainer, isDark && styles.trackContainerDark]}>
-                <Ruler />
+                <Grid />
+                <StartPositionLines />
                 <Animated.View style={[styles.object, animatedStyle]}>
                     <Image
                         source={require('@/assets/images/car.png')}
@@ -334,7 +384,7 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     trackContainerDark: {
-        backgroundColor: Colors.dark.background,
+        backgroundColor: '#334155', // Slate-700 - medium dark gray
     },
     // Desktop Layout
     wideContainer: {
@@ -443,5 +493,29 @@ const styles = StyleSheet.create({
     },
     gridLineDark: {
         backgroundColor: 'rgba(255,255,255,0.05)',
-    }
+    },
+    // Start Position Indicator Styles
+    startLineVertical: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        width: 2,
+        zIndex: 1,
+    },
+    startLineHorizontal: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        height: 2,
+        zIndex: 1,
+    },
+    // Tick marks on the axis line
+    axisTick: {
+        position: 'absolute',
+        top: -8,
+        width: 2,
+        height: 18,
+        backgroundColor: '#3B82F6',
+        marginLeft: -1,
+    },
 });

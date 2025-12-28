@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
+import { StyleSheet, ScrollView, View, Text, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { auth, signOut, getCurrentUser } from '@/services/firebase';
+import { auth, signOut, getCurrentUser, updateUserProfile, updateUserPassword } from '@/services/firebase';
 import { api } from '@/services/api';
 
 interface QuizRecord {
@@ -28,6 +29,15 @@ export default function ProfileScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [userEmail, setUserEmail] = useState<string>('');
     const [userName, setUserName] = useState<string>('');
+
+    // Edit states
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newDisplayName, setNewDisplayName] = useState('');
+    const [isEditingPassword, setIsEditingPassword] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -76,6 +86,53 @@ export default function ProfileScreen() {
         setRefreshing(false);
     }, [loadHistory]);
 
+    const handleSaveName = async () => {
+        if (!newDisplayName.trim()) {
+            Alert.alert('Error', 'Please enter a display name');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await updateUserProfile(newDisplayName.trim());
+            setUserName(newDisplayName.trim());
+            setIsEditingName(false);
+            setNewDisplayName('');
+            Alert.alert('Success', 'Display name updated!');
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to update name');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSavePassword = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            Alert.alert('Error', 'Please fill in all password fields');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            Alert.alert('Error', 'New passwords do not match');
+            return;
+        }
+        if (newPassword.length < 6) {
+            Alert.alert('Error', 'New password must be at least 6 characters');
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await updateUserPassword(currentPassword, newPassword);
+            setIsEditingPassword(false);
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            Alert.alert('Success', 'Password updated successfully!');
+        } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to update password');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     const handleLogout = async () => {
         try {
             await signOut();
@@ -118,6 +175,134 @@ export default function ProfileScreen() {
                     </View>
                     <Text style={[styles.userName, isDark && styles.textDark]}>{userName || 'User'}</Text>
                     <Text style={[styles.userEmail, isDark && styles.textSecondaryDark]}>{userEmail || 'No email'}</Text>
+                </Card>
+
+                {/* Edit Profile Section */}
+                <Card style={styles.editCard}>
+                    <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Edit Profile</Text>
+
+                    {/* Edit Display Name */}
+                    {!isEditingName ? (
+                        <TouchableOpacity
+                            style={styles.editRow}
+                            onPress={() => { setIsEditingName(true); setNewDisplayName(userName); }}
+                        >
+                            <View>
+                                <Text style={[styles.editLabel, isDark && styles.textSecondaryDark]}>Display Name</Text>
+                                <Text style={[styles.editValue, isDark && styles.textDark]}>{userName}</Text>
+                            </View>
+                            <IconSymbol name="chevron.right" size={20} color={isDark ? '#888' : '#666'} />
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={styles.editRowHeader}
+                            onPress={() => { setIsEditingName(false); setNewDisplayName(''); }}
+                        >
+                            <View>
+                                <Text style={[styles.editLabel, isDark && styles.textSecondaryDark]}>Display Name</Text>
+                                <Text style={[styles.editValue, isDark && styles.textDark]}>{userName}</Text>
+                            </View>
+                            <IconSymbol name="chevron.down" size={20} color={Colors[colorScheme ?? 'light'].tint} />
+                        </TouchableOpacity>
+                    )}
+                    {isEditingName && (
+                        <View style={styles.editInputSection}>
+                            <Input
+                                label="New Display Name"
+                                placeholder="Enter new name"
+                                value={newDisplayName}
+                                onChangeText={setNewDisplayName}
+                            />
+                            <View style={styles.editButtons}>
+                                <Button
+                                    title="Cancel"
+                                    variant="secondary"
+                                    onPress={() => { setIsEditingName(false); setNewDisplayName(''); }}
+                                    style={{ flex: 1, marginRight: 8 }}
+                                />
+                                <Button
+                                    title={isSaving ? "Saving..." : "Save"}
+                                    onPress={handleSaveName}
+                                    disabled={isSaving}
+                                    style={{ flex: 1 }}
+                                />
+                            </View>
+                        </View>
+                    )}
+
+                    {/* Edit Password */}
+                    {!isEditingPassword ? (
+                        <TouchableOpacity
+                            style={[styles.editRow, { marginTop: 16 }]}
+                            onPress={() => setIsEditingPassword(true)}
+                        >
+                            <View>
+                                <Text style={[styles.editLabel, isDark && styles.textSecondaryDark]}>Password</Text>
+                                <Text style={[styles.editValue, isDark && styles.textDark]}>••••••••</Text>
+                            </View>
+                            <IconSymbol name="chevron.right" size={20} color={isDark ? '#888' : '#666'} />
+                        </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={[styles.editRowHeader, { marginTop: 16 }]}
+                            onPress={() => {
+                                setIsEditingPassword(false);
+                                setCurrentPassword('');
+                                setNewPassword('');
+                                setConfirmPassword('');
+                            }}
+                        >
+                            <View>
+                                <Text style={[styles.editLabel, isDark && styles.textSecondaryDark]}>Password</Text>
+                                <Text style={[styles.editValue, isDark && styles.textDark]}>••••••••</Text>
+                            </View>
+                            <IconSymbol name="chevron.down" size={20} color={Colors[colorScheme ?? 'light'].tint} />
+                        </TouchableOpacity>
+                    )}
+                    {isEditingPassword && (
+                        <View style={styles.editInputSection}>
+                            <Input
+                                label="Current Password"
+                                placeholder="Enter current password"
+                                secureTextEntry
+                                value={currentPassword}
+                                onChangeText={setCurrentPassword}
+                            />
+                            <Input
+                                label="New Password"
+                                placeholder="Min 6 characters"
+                                secureTextEntry
+                                value={newPassword}
+                                onChangeText={setNewPassword}
+                            />
+                            <Input
+                                label="Confirm New Password"
+                                placeholder="Confirm new password"
+                                secureTextEntry
+                                value={confirmPassword}
+                                onChangeText={setConfirmPassword}
+                            />
+                            <View style={styles.editButtons}>
+                                <Button
+                                    title="Cancel"
+                                    variant="secondary"
+                                    onPress={() => {
+                                        setIsEditingPassword(false);
+                                        setCurrentPassword('');
+                                        setNewPassword('');
+                                        setConfirmPassword('');
+                                    }}
+                                    style={{ flex: 1, marginRight: 8 }}
+                                />
+                                <Button
+                                    title={isSaving ? "Saving..." : "Save"}
+                                    onPress={handleSavePassword}
+                                    disabled={isSaving}
+                                    style={{ flex: 1 }}
+                                />
+                            </View>
+                        </View>
+                    )}
                 </Card>
 
                 {/* Stats */}
@@ -175,7 +360,7 @@ export default function ProfileScreen() {
                     textStyle={{ color: '#FFFFFF' }}
                 />
             </ScrollView>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 
@@ -285,5 +470,46 @@ const styles = StyleSheet.create({
     scoreText: {
         fontSize: 16,
         fontWeight: '600',
-    }
+    },
+    // Edit Profile Styles
+    editCard: {
+        marginTop: 20,
+    },
+    editRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(0,0,0,0.05)',
+    },
+    editLabel: {
+        fontSize: 12,
+        color: Colors.light.icon,
+        marginBottom: 2,
+    },
+    editValue: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: Colors.light.text,
+    },
+    editInputSection: {
+        gap: 12,
+        paddingTop: 8,
+    },
+    editButtons: {
+        flexDirection: 'row',
+        marginTop: 8,
+    },
+    editRowHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(99, 102, 241, 0.3)',
+        backgroundColor: 'rgba(99, 102, 241, 0.05)',
+        marginHorizontal: -24,
+        paddingHorizontal: 24,
+    },
 });

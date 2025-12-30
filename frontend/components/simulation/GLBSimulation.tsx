@@ -8,6 +8,7 @@ import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ============================================
 // SIMULATION CONFIGURATION - Edit values here
@@ -90,6 +91,27 @@ export function GLBSimulation() {
         const newCompletedRuns = completedRuns + 1;
         setCompletedRuns(newCompletedRuns);
 
+        // Save simulation history to AsyncStorage
+        try {
+            const historyRecord = {
+                type: 'glb',
+                topic: 'GLB',
+                parameters: {
+                    velocity: parseFloat(velocity) || 10,
+                },
+                results: {
+                    distance: currentPosition,
+                    time: currentTime,
+                },
+                date: new Date().toISOString(),
+            };
+            const key = `lab_${Date.now()}`;
+            await AsyncStorage.setItem(key, JSON.stringify(historyRecord));
+            console.log('✅ GLB simulation history saved');
+        } catch (error) {
+            console.log('Failed to save simulation history:', error);
+        }
+
         // After 3 successful runs, mark lab as completed
         if (newCompletedRuns >= 3) {
             try {
@@ -116,7 +138,7 @@ export function GLBSimulation() {
 
     // Real-time position tracking
     useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
+        let interval: ReturnType<typeof setInterval> | null = null;
         if (isPlaying) {
             const startTime = Date.now();
             const startPos = currentPosition;

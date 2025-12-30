@@ -8,6 +8,7 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ============================================
 // SIMULATION CONFIGURATION - Edit values here
@@ -111,8 +112,31 @@ export function ProjectileMotionSimulation() {
         });
     };
 
-    const handleFinish = () => {
+    const handleFinish = async () => {
         setIsPlaying(false);
+
+        // Save simulation history to AsyncStorage
+        try {
+            const historyRecord = {
+                type: 'parabola',
+                topic: 'Parabola',
+                parameters: {
+                    initialVelocity: parseFloat(velocity) || 0,
+                    angle: parseFloat(angle) || 0,
+                },
+                results: {
+                    maxHeight: Math.max(0, posY.value),
+                    distance: posX.value,
+                    time: time.value,
+                },
+                date: new Date().toISOString(),
+            };
+            const key = `lab_${Date.now()}`;
+            await AsyncStorage.setItem(key, JSON.stringify(historyRecord));
+            console.log('✅ Projectile Motion simulation history saved');
+        } catch (error) {
+            console.log('Failed to save simulation history:', error);
+        }
     };
 
     const resetSimulation = () => {

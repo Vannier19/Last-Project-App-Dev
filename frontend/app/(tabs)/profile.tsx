@@ -20,12 +20,22 @@ interface QuizRecord {
     date: string;
 }
 
+interface LabRecord {
+    key: string;
+    type: string;
+    topic: string;
+    parameters: Record<string, number>;
+    results: Record<string, number>;
+    date: string;
+}
+
 export default function ProfileScreen() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const router = useRouter();
 
     const [quizHistory, setQuizHistory] = useState<QuizRecord[]>([]);
+    const [labHistory, setLabHistory] = useState<LabRecord[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [userEmail, setUserEmail] = useState<string>('');
     const [userName, setUserName] = useState<string>('');
@@ -48,7 +58,7 @@ export default function ProfileScreen() {
     }, []);
 
     const loadHistory = useCallback(async () => {
-        // Load from local AsyncStorage first (for offline support)
+        // Load quiz history from AsyncStorage
         try {
             const keys = await AsyncStorage.getAllKeys();
             const quizKeys = keys.filter(k => k.startsWith('quiz_'));
@@ -61,7 +71,23 @@ export default function ProfileScreen() {
 
             setQuizHistory(records);
         } catch (e) {
-            console.log('Failed to load local history', e);
+            console.log('Failed to load quiz history', e);
+        }
+
+        // Load lab/simulation history from AsyncStorage
+        try {
+            const keys = await AsyncStorage.getAllKeys();
+            const labKeys = keys.filter(k => k.startsWith('lab_'));
+            const items = await AsyncStorage.multiGet(labKeys);
+
+            const records: LabRecord[] = items.map(([key, value]) => {
+                const data = value ? JSON.parse(value) : {};
+                return { key, ...data };
+            }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            setLabHistory(records);
+        } catch (e) {
+            console.log('Failed to load lab history', e);
         }
 
         // Also fetch from backend to get server-side progress
@@ -69,7 +95,6 @@ export default function ProfileScreen() {
             const response = await api.getProgress();
             if (response.data?.quizScores) {
                 console.log('Backend progress:', response.data.quizScores);
-                // Backend quiz scores are available for future integration
             }
         } catch (e) {
             console.log('Failed to fetch backend progress (offline mode)', e);
@@ -135,12 +160,12 @@ export default function ProfileScreen() {
 
     const handleLogout = async () => {
         try {
-            // Clear quiz history from AsyncStorage to prevent data leaking to other accounts
+            // Clear quiz and lab history from AsyncStorage to prevent data leaking to other accounts
             const keys = await AsyncStorage.getAllKeys();
-            const quizKeys = keys.filter(k => k.startsWith('quiz_'));
-            if (quizKeys.length > 0) {
-                await AsyncStorage.multiRemove(quizKeys);
-                console.log('✅ Cleared quiz history on logout');
+            const historyKeys = keys.filter(k => k.startsWith('quiz_') || k.startsWith('lab_'));
+            if (historyKeys.length > 0) {
+                await AsyncStorage.multiRemove(historyKeys);
+                console.log('✅ Cleared quiz and lab history on logout');
             }
 
             await signOut();
@@ -359,6 +384,39 @@ export default function ProfileScreen() {
                     ))
                 )}
 
+                {/* Lab History */}
+                <Text style={[styles.sectionTitle, isDark && styles.textDark, { marginTop: 20 }]}>Simulation History</Text>
+                {labHistory.length === 0 ? (
+                    <Card style={styles.emptyCard}>
+                        <Text style={[styles.emptyText, isDark && styles.textSecondaryDark]}>
+                            No simulation history yet. Run a simulation to see your experiments!
+                        </Text>
+                    </Card>
+                ) : (
+                    labHistory.slice(0, 10).map((record, index) => (
+                        <Card key={record.key || index} style={styles.historyCard}>
+                            <View style={styles.historyRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={[styles.historyTopic, isDark && styles.textDark]}>
+                                        {record.topic} Simulation
+                                    </Text>
+                                    <Text style={[styles.historyDate, isDark && styles.textSecondaryDark]}>
+                                        {formatDate(record.date)}
+                                    </Text>
+                                    <Text style={[styles.historyParams, isDark && styles.textSecondaryDark]}>
+                                        {Object.entries(record.parameters || {}).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                                    </Text>
+                                </View>
+                                <View style={styles.labResultBadge}>
+                                    <Text style={styles.labResultText}>
+                                        t={record.results?.time?.toFixed(1) || 0}s
+                                    </Text>
+                                </View>
+                            </View>
+                        </Card>
+                    ))
+                )}
+
                 {/* Logout Button */}
                 <Button
                     title="Log Out"
@@ -478,6 +536,22 @@ const styles = StyleSheet.create({
     scoreText: {
         fontSize: 16,
         fontWeight: '600',
+    },
+    historyParams: {
+        fontSize: 11,
+        color: Colors.light.icon,
+        marginTop: 4,
+    },
+    labResultBadge: {
+        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    labResultText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#6366f1',
     },
     // Edit Profile Styles
     editCard: {

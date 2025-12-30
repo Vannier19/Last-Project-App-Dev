@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
-import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Modal, useWindowDimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Modal, useWindowDimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Button } from '@/components/ui/Button';
 import { HoverableCard } from '@/components/ui/HoverableCard';
+
+// Lazy load YouTube player only on native platforms to avoid web bundling issues
+const YoutubePlayer = Platform.OS !== 'web'
+    ? require('react-native-youtube-iframe').default
+    : null;
 
 type TopicKey = 'glb' | 'glbb' | 'vertikal' | 'parabola';
 
@@ -17,6 +22,7 @@ interface TopicData {
     bgColor: string;
     formulas: string[];
     description: string;
+    videoId: string;
 }
 
 const materialsData: Record<TopicKey, TopicData> = {
@@ -27,7 +33,8 @@ const materialsData: Record<TopicKey, TopicData> = {
         color: "#6366f1",
         bgColor: "rgba(99, 102, 241, 0.15)",
         formulas: ["s = v × t", "v = s / t", "t = s / v"],
-        description: "GLB is motion in a straight line with constant velocity. There is no acceleration (a = 0). The distance traveled is directly proportional to time."
+        description: "GLB is motion in a straight line with constant velocity. There is no acceleration (a = 0). The distance traveled is directly proportional to time.",
+        videoId: "dHjWVlfNraM"
     },
     glbb: {
         title: "Gerak Lurus Berubah Beraturan (GLBB)",
@@ -36,7 +43,8 @@ const materialsData: Record<TopicKey, TopicData> = {
         color: "#8b5cf6",
         bgColor: "rgba(139, 92, 246, 0.15)",
         formulas: ["v = v₀ + at", "s = v₀t + ½at²", "v² = v₀² + 2as"],
-        description: "GLBB is motion in a straight line with constant acceleration. Examples include braking cars and falling objects."
+        description: "GLBB is motion in a straight line with constant acceleration. Examples include braking cars and falling objects.",
+        videoId: "dHjWVlfNraM"
     },
     vertikal: {
         title: "Gerak Vertikal",
@@ -45,7 +53,8 @@ const materialsData: Record<TopicKey, TopicData> = {
         color: "#ec4899",
         bgColor: "rgba(236, 72, 153, 0.15)",
         formulas: ["h = v₀t - ½gt²", "v = v₀ - gt", "h_max = v₀²/2g", "t_up = v₀/g"],
-        description: "Vertical motion includes free fall and upward throws. Gravity (g ≈ 9.8 m/s²) acts as constant downward acceleration."
+        description: "Vertical motion includes free fall and upward throws. Gravity (g ≈ 9.8 m/s²) acts as constant downward acceleration.",
+        videoId: "BVgemK1Y2wA"
     },
     parabola: {
         title: "Gerak Parabola",
@@ -54,7 +63,8 @@ const materialsData: Record<TopicKey, TopicData> = {
         color: "#f59e0b",
         bgColor: "rgba(245, 158, 11, 0.15)",
         formulas: ["x = v₀ cos(θ) × t", "y = v₀ sin(θ) × t - ½gt²", "R = v₀² sin(2θ) / g"],
-        description: "Projectile motion is a combination of horizontal (GLB) and vertical (GLBB) motion. Maximum range is achieved at 45°."
+        description: "Projectile motion is a combination of horizontal (GLB) and vertical (GLBB) motion. Maximum range is achieved at 45°.",
+        videoId: "8NLzuURxFwY"
     }
 };
 
@@ -97,7 +107,56 @@ interface DetailModalProps {
 }
 
 const DetailModal = ({ visible, data, isDark, onClose }: DetailModalProps) => {
+    const { width } = useWindowDimensions();
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    const onStateChange = useCallback((state: string) => {
+        if (state === "ended") {
+            setIsPlaying(false);
+        }
+    }, []);
+
+    // Reset playing state when modal closes
+    React.useEffect(() => {
+        if (!visible) {
+            setIsPlaying(false);
+        }
+    }, [visible]);
+
     if (!data) return null;
+
+    const videoWidth = Math.min(width - 40, 560);
+    const videoHeight = videoWidth * (9 / 16);
+
+    const renderVideoPlayer = () => {
+        if (Platform.OS === 'web') {
+            return (
+                <iframe
+                    width="100%"
+                    height={videoHeight}
+                    src={`https://www.youtube.com/embed/${data.videoId}`}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    style={{ borderRadius: 12 }}
+                />
+            );
+        }
+
+        if (YoutubePlayer) {
+            return (
+                <YoutubePlayer
+                    height={videoHeight}
+                    width={videoWidth}
+                    play={isPlaying}
+                    videoId={data.videoId}
+                    onChangeState={onStateChange}
+                />
+            );
+        }
+
+        return null;
+    };
 
     return (
         <Modal
@@ -119,6 +178,14 @@ const DetailModal = ({ visible, data, isDark, onClose }: DetailModalProps) => {
                 <ScrollView style={styles.modalContent}>
                     <Text style={[styles.modalTitle, isDark && styles.textDark]}>{data.title}</Text>
                     <Text style={[styles.modalSubtitle, isDark && styles.textSecondaryDark]}>{data.subtitle}</Text>
+
+                    {/* YouTube Video Section */}
+                    <View style={styles.section}>
+                        <Text style={[styles.sectionHeader, isDark && styles.textDark]}>🎬 Learning Video</Text>
+                        <View style={styles.videoContainer}>
+                            {renderVideoPlayer()}
+                        </View>
+                    </View>
 
                     <View style={styles.section}>
                         <Text style={[styles.sectionHeader, isDark && styles.textDark]}>📐 Key Formulas</Text>
@@ -366,6 +433,13 @@ const styles = StyleSheet.create({
     },
     section: {
         marginBottom: 28,
+    },
+    videoContainer: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        backgroundColor: '#000',
+        alignItems: 'center',
+        marginBottom: 8,
     },
     sectionHeader: {
         fontSize: 17,

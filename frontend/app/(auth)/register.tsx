@@ -49,10 +49,10 @@ export default function RegisterScreen() {
             // 4. Navigate to main app (or show success message for web)
             if (Platform.OS === 'web') {
                 // For web, just navigate (Alert won't work)
-                router.replace('/(tabs)/main');
+                router.replace('/');
             } else {
                 Alert.alert('Berhasil', 'Akun berhasil dibuat!', [
-                    { text: 'OK', onPress: () => router.replace('/(tabs)/main') }
+                    { text: 'OK', onPress: () => router.replace('/') }
                 ]);
             }
         } catch (error: any) {

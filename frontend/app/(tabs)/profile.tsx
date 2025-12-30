@@ -135,6 +135,14 @@ export default function ProfileScreen() {
 
     const handleLogout = async () => {
         try {
+            // Clear quiz history from AsyncStorage to prevent data leaking to other accounts
+            const keys = await AsyncStorage.getAllKeys();
+            const quizKeys = keys.filter(k => k.startsWith('quiz_'));
+            if (quizKeys.length > 0) {
+                await AsyncStorage.multiRemove(quizKeys);
+                console.log('✅ Cleared quiz history on logout');
+            }
+
             await signOut();
             router.replace('/(auth)/login');
         } catch (error) {

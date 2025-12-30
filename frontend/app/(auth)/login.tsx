@@ -51,7 +51,7 @@ export default function LoginScreen() {
                 await api.syncUser(token);
                 console.log('✅ Backend sync success');
 
-                router.replace('/(tabs)/main');
+                router.replace('/');
             } catch (error: any) {
                 console.error('❌ Google Login error:', error);
                 Alert.alert('Google Login Failed', error.message || 'An error occurred');
@@ -77,7 +77,7 @@ export default function LoginScreen() {
                     await api.syncUser(token);
                     console.log('✅ Backend sync success');
 
-                    router.replace('/(tabs)/main');
+                    router.replace('/');
                 } else {
                     // Handle cancellation or no token
                     console.log('Google Sign-In was cancelled or failed to return ID token');
@@ -121,7 +121,7 @@ export default function LoginScreen() {
             await new Promise(resolve => setTimeout(resolve, 500));
 
             // 4. Navigate to main app
-            router.replace('/(tabs)/main');
+            router.replace('/');
         } catch (error: any) {
             console.error('❌ Login error:', error);
             console.log('🔍 Error details:', {
@@ -129,12 +129,12 @@ export default function LoginScreen() {
                 code: error.code,
                 name: error.name
             });
-            
+
             // Show error message in UI
             const errorMsg = error.message || 'Terjadi kesalahan saat login';
             setErrorMessage(errorMsg);
             console.log('🚨 Error message set:', errorMsg);
-            
+
             // Also show Alert for mobile (won't work on web but that's ok)
             if (Platform.OS !== 'web') {
                 Alert.alert(
@@ -167,7 +167,7 @@ export default function LoginScreen() {
                                 <Text style={styles.errorText}>⚠️ {errorMessage}</Text>
                             </View>
                         ) : null}
-                        
+
                         <Input
                             label="Email"
                             placeholder="Enter your email"

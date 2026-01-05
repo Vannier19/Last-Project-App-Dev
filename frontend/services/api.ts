@@ -23,10 +23,22 @@ interface ApiResponse<T = any> {
 }
 
 // Helper: Get Firebase ID token for authenticated requests
+// Helper: Get Firebase ID token for authenticated requests
 async function getAuthToken(): Promise<string | null> {
   const user = auth.currentUser;
-  if (!user) return null;
-  return await user.getIdToken();
+  if (user) return await user.getIdToken();
+
+  // If no user immediately available, wait for auth initialization (useful for page reloads on web)
+  return new Promise((resolve) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      unsubscribe();
+      if (user) {
+        resolve(await user.getIdToken());
+      } else {
+        resolve(null);
+      }
+    });
+  });
 }
 
 // Helper: Make authenticated API request
@@ -151,19 +163,23 @@ class HybridApiService {
       const backendData = (response.data || {}) as {
         completedMaterials?: string[];
         quizScores?: Record<string, number>;
+        quizResults?: Record<string, any>;
         labStatus?: Record<string, string>;
+        labHistory?: Record<string, any[]>;
       };
       const formattedData = {
         completedMaterials: backendData.completedMaterials || [],
         quizScores: backendData.quizScores || {},
+        quizResults: backendData.quizResults || {},
         labStatus: backendData.labStatus || {},
+        labHistory: backendData.labHistory || {},
       };
 
       return { data: formattedData };
     } catch (error: any) {
       console.error('Get progress error:', error);
-      // Return empty progress on error (user might be new)
-      return { data: { completedMaterials: [], quizScores: {}, labStatus: {} } };
+      // Return empty progress on error (user might be new or not logged in)
+      return { data: { completedMaterials: [], quizScores: {}, quizResults: {}, labStatus: {}, labHistory: {} } };
     }
   }
 

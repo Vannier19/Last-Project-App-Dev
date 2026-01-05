@@ -58,14 +58,6 @@ export default function ProfileScreen() {
     const [isSaving, setIsSaving] = useState(false);
     const [expandedQuiz, setExpandedQuiz] = useState<string | null>(null);
 
-    useEffect(() => {
-        const user = getCurrentUser();
-        if (user) {
-            setUserEmail(user.email || 'No email');
-            setUserName(user.displayName || user.email?.split('@')[0] || 'User');
-        }
-    }, []);
-
     const loadHistory = useCallback(async () => {
         // Fetch all history from backend (Firestore)
         try {
@@ -73,32 +65,83 @@ export default function ProfileScreen() {
             const data = response.data;
 
             // Process quiz results from Firestore
-            if (data?.quizResults) {
-                const quizRecords: QuizRecord[] = Object.entries(data.quizResults).map(([topic, result]: [string, any]) => ({
-                    key: `quiz_${topic}`,
-                    topic: topic,
-                    score: result.correctAnswers || 0,
-                    total: result.totalQuestions || 0,
-                    percentage: result.score || 0,
-                    answers: result.answers || [],
-                    date: result.submittedAt?.toDate?.()?.toISOString() || result.submittedAt || new Date().toISOString(),
-                }));
+            if (data?.quizResults && Object.keys(data.quizResults).length > 0) {
+                const quizRecords: QuizRecord[] = Object.entries(data.quizResults).map(([topic, result]: [string, any]) => {
+                    // Parse Firestore timestamp for quiz
+                    let quizDateStr = new Date().toISOString();
+                    if (result.submittedAt) {
+                        if (result.submittedAt._seconds) {
+                            quizDateStr = new Date(result.submittedAt._seconds * 1000).toISOString();
+                        } else if (typeof result.submittedAt === 'string') {
+                            quizDateStr = result.submittedAt;
+                        } else if (result.submittedAt.toDate) {
+                            quizDateStr = result.submittedAt.toDate().toISOString();
+                        }
+                    }
+                    return {
+                        key: `quiz_${topic}`,
+                        topic: topic,
+                        score: result.correctAnswers || 0,
+                        total: result.totalQuestions || 0,
+                        percentage: result.score || 0,
+                        answers: result.answers || [],
+                        date: quizDateStr,
+                    };
+                });
                 setQuizHistory(quizRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             }
 
             // Process lab history from Firestore
+            console.log('🔍 Processing Lab History. Raw data:', JSON.stringify(data?.labHistory, null, 2));
+
             if (data?.labHistory) {
                 const labRecords: LabRecord[] = [];
                 Object.entries(data.labHistory).forEach(([labId, entries]: [string, any]) => {
                     if (Array.isArray(entries)) {
                         entries.forEach((entry: any, index: number) => {
+                            // Parse Firestore timestamp
+                            let dateStr = new Date().toISOString();
+                            if (entry.completedAt) {
+                                if (entry.completedAt._seconds) {
+                                    dateStr = new Date(entry.completedAt._seconds * 1000).toISOString();
+                                } else if (typeof entry.completedAt === 'string') {
+                                    dateStr = entry.completedAt;
+                                } else if (entry.completedAt.toDate) {
+                                    dateStr = entry.completedAt.toDate().toISOString();
+                                }
+                            }
+
+                            // Filter out metadata fields from parameters
+                            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                            const { completedAt, userId, labId: _labId, timestamp, ...cleanParams } = entry;
+
+                            // Map internal IDs to display names (handle case insensitivity etc)
+                            const topicMap: Record<string, string> = {
+                                'glb': 'GLB',
+                                'glbb': 'GLBB',
+                                'vertikal': 'Vertical Motion',
+                                'parabola': 'Projectile Motion',
+                                'vertical': 'Vertical Motion',
+                                'projectile': 'Projectile Motion'
+                            };
+
+                            // Normalize type string: remove '-lab', ' simulation', convert to lowercase
+                            let type = labId.toLowerCase()
+                                .replace('-lab', '')
+                                .replace(' simulation', '')
+                                .trim();
+
+                            // Fallback if type is still messy
+                            if (type.includes('vertikal')) type = 'vertikal';
+                            if (type.includes('parabola')) type = 'parabola';
+
                             labRecords.push({
                                 key: `lab_${labId}_${index}`,
-                                type: labId.replace('-lab', ''),
-                                topic: labId.replace('-lab', '').toUpperCase(),
-                                parameters: entry,
-                                results: entry,
-                                date: entry.completedAt?.toDate?.()?.toISOString() || entry.completedAt || new Date().toISOString(),
+                                type: type,
+                                topic: topicMap[type] || type.toUpperCase(),
+                                parameters: cleanParams,
+                                results: cleanParams,
+                                date: dateStr,
                             });
                         });
                     }
@@ -113,7 +156,24 @@ export default function ProfileScreen() {
     }, []);
 
     useEffect(() => {
-        loadHistory();
+        const user = getCurrentUser();
+        if (user) {
+            setUserEmail(user.email || 'No email');
+            setUserName(user.displayName || user.email?.split('@')[0] || 'User');
+            loadHistory();
+        }
+    }, [loadHistory]);
+
+    // Listen for auth state changes to load history when user becomes available after page reload
+    useEffect(() => {
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                setUserEmail(user.email || 'No email');
+                setUserName(user.displayName || user.email?.split('@')[0] || 'User');
+                loadHistory();
+            }
+        });
+        return () => unsubscribe();
     }, [loadHistory]);
 
     const onRefresh = useCallback(async () => {
@@ -445,28 +505,58 @@ export default function ProfileScreen() {
                         </Text>
                     </Card>
                 ) : (
-                    labHistory.slice(0, 10).map((record, index) => (
-                        <Card key={record.key || index} style={styles.historyCard}>
-                            <View style={styles.historyRow}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={[styles.historyTopic, isDark && styles.textDark]}>
-                                        {record.topic} Simulation
-                                    </Text>
-                                    <Text style={[styles.historyDate, isDark && styles.textSecondaryDark]}>
-                                        {formatDate(record.date)}
-                                    </Text>
-                                    <Text style={[styles.historyParams, isDark && styles.textSecondaryDark]}>
-                                        {Object.entries(record.parameters || {}).map(([k, v]) => `${k}: ${v}`).join(' | ')}
-                                    </Text>
+                    labHistory.slice(0, 10).map((record, index) => {
+                        // Format parameter name for display
+                        const formatParamName = (key: string) => {
+                            const names: Record<string, string> = {
+                                'initialVelocity': 'v₀',
+                                'velocity': 'v',
+                                'acceleration': 'a',
+                                'maxHeight': 'h_max',
+                                'distance': 's',
+                                'time': 't',
+                                'angle': 'θ',
+                                'finalVelocity': 'v_f',
+                            };
+                            return names[key] || key;
+                        };
+
+                        // Format value (round to 2 decimals)
+                        const formatValue = (val: any) => {
+                            if (typeof val === 'number') {
+                                return val.toFixed(2);
+                            }
+                            return String(val);
+                        };
+
+                        const paramString = Object.entries(record.parameters || {})
+                            .filter(([k]) => k !== 'completedAt')
+                            .map(([k, v]) => `${formatParamName(k)}=${formatValue(v)}`)
+                            .join('  ');
+
+                        return (
+                            <Card key={record.key || index} style={styles.historyCard}>
+                                <View style={styles.historyRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={[styles.historyTopic, isDark && styles.textDark]}>
+                                            {record.topic} Simulation
+                                        </Text>
+                                        <Text style={[styles.historyDate, isDark && styles.textSecondaryDark]}>
+                                            {formatDate(record.date)}
+                                        </Text>
+                                        <Text style={[styles.historyParams, isDark && styles.textSecondaryDark]}>
+                                            {paramString}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.labResultBadge}>
+                                        <Text style={styles.labResultText}>
+                                            t={record.results?.time?.toFixed(1) || 0}s
+                                        </Text>
+                                    </View>
                                 </View>
-                                <View style={styles.labResultBadge}>
-                                    <Text style={styles.labResultText}>
-                                        t={record.results?.time?.toFixed(1) || 0}s
-                                    </Text>
-                                </View>
-                            </View>
-                        </Card>
-                    ))
+                            </Card>
+                        );
+                    })
                 )}
 
                 {/* Logout Button */}

@@ -55,6 +55,9 @@ async function apiRequest<T>(
 
   if (token) {
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    console.log('🔑 Attaching auth token to request:', endpoint);
+  } else {
+    console.warn('⚠️ No auth token available for request:', endpoint);
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -65,6 +68,7 @@ async function apiRequest<T>(
   const data = await response.json();
 
   if (!response.ok) {
+    console.error(`❌ API Error ${response.status} at ${endpoint}:`, JSON.stringify(data));
     throw new Error(data.error || data.message || 'API request failed');
   }
 

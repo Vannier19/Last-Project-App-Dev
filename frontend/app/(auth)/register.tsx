@@ -35,18 +35,15 @@ export default function RegisterScreen() {
         setErrorMessage(''); // Clear previous error
         try {
             console.log('📝 Starting registration...');
-            // 1. Register to Firebase
+
             const { user, token } = await signUp(email, password);
             console.log('✅ Firebase registration success:', user.email);
 
-            // 2. Sync with Backend (will create user in Firestore)
             await api.syncUser(token);
             console.log('✅ Backend sync success');
 
-            // 3. Small delay to ensure auth state is updated
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // 4. Navigate to main app (or show success message for web)
             if (Platform.OS === 'web') {
                 // For web, just navigate (Alert won't work)
                 router.replace('/');

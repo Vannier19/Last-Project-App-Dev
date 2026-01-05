@@ -12,14 +12,11 @@ import { Card } from '@/components/ui/Card';
 import { signIn, auth, GoogleAuthProvider, signInWithPopup, signInWithCredential } from '@/services/firebase';
 import api from '@/services/api';
 
-// Check if running in Expo Go (where native modules are not available)
 const isExpoGo = Constants.appOwnership === 'expo';
 
-// Only import Google Sign-In if not in Expo Go
 let GoogleSignin: any = null;
 let statusCodes: any = null;
 
-// Try to load Google Sign-In module (will fail gracefully in Expo Go)
 try {
     if (!isExpoGo && Platform.OS !== 'web') {
         const googleSignIn = require('@react-native-google-signin/google-signin');
@@ -56,7 +53,6 @@ export default function LoginScreen() {
     // Platform-specific Google Sign-In
     const handleGoogleSignIn = async () => {
         if (Platform.OS === 'web') {
-            // Web: Use signInWithPopup
             setLoading(true);
             try {
                 const provider = new GoogleAuthProvider();
@@ -75,7 +71,6 @@ export default function LoginScreen() {
                 setLoading(false);
             }
         } else {
-            // Native (iOS/Android): Use @react-native-google-signin
             setLoading(true);
             try {
                 await GoogleSignin.hasPlayServices();
@@ -125,18 +120,15 @@ export default function LoginScreen() {
         setErrorMessage(''); // Clear previous error
         try {
             console.log('🔐 Starting login...');
-            // 1. Login to Firebase
+
             const { user, token } = await signIn(email, password);
             console.log('✅ Firebase login success:', user.email);
 
-            // 2. Sync with Backend
             const syncResponse = await api.syncUser(token);
             console.log('✅ Backend sync success:', syncResponse);
 
-            // 3. Small delay to ensure auth state is updated
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            // 4. Navigate to main app
             router.replace('/');
         } catch (error: any) {
             console.error('❌ Login error:', error);

@@ -11,9 +11,6 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { api } from '@/services/api';
 
-// ============================================
-// SIMULATION CONFIGURATION - Edit values here
-// ============================================
 const SIMULATION_CONFIG = {
     // Initial velocity [m/s]
     INITIAL_VELOCITY: '20',

@@ -51,7 +51,7 @@ const simulations = [
   },
 ];
 
-// Feature Card Component - matching Home style
+// Feature Card Component
 const FeatureCard = ({ sim, isDark, isWide, onPress }: any) => (
   <HoverableCard
     style={[styles.featureCard, isDark && styles.featureCardDark, isWide && styles.featureCardWide]}
@@ -92,7 +92,7 @@ export default function HomeScreen({ requestedSimulation }: HomeScreenProps) {
 
   const renderDashboard = () => (
     <ScrollView contentContainerStyle={[styles.scrollContent, isWide && styles.scrollContentWide]}>
-      {/* Header Section - matching Home */}
+      {/* Header Section */}
       <View style={[styles.headerSection, isDark && styles.headerSectionDark]}>
         <Text style={[styles.title, isDark && styles.textDark, isWide && styles.titleWide]}>
           Virtual Lab
@@ -102,7 +102,7 @@ export default function HomeScreen({ requestedSimulation }: HomeScreenProps) {
         </Text>
       </View>
 
-      {/* Cards Grid - matching Home */}
+      {/* Cards Grid */}
       <View style={[styles.cardsGrid, isWide && styles.cardsGridWide]}>
         {simulations.map((sim) => (
           <FeatureCard
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
-  // Header - matching Home
+  // Header
   headerSection: {
     marginBottom: 32,
     paddingBottom: 24,
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   textSecondaryDark: {
     color: Colors.dark.icon,
   },
-  // Cards Grid - matching Home
+  // Cards Grid
   cardsGrid: {
     gap: 20,
   },
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 24,
   },
-  // Feature Card - matching Home
+  // Feature Card
   featureCard: {
     backgroundColor: Colors.light.card,
     borderRadius: 20,
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     maxWidth: '48%',
     padding: 32,
   },
-  // Icon Container - matching Home
+  // Icon Container
   iconContainer: {
     width: 56,
     height: 56,
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  // Feature Title - matching Home
+  // Feature Title
   featureTitle: {
     fontSize: 19,
     fontWeight: '700',
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   featureTitleWide: {
     fontSize: 22,
   },
-  // Feature Description - matching Home
+  // Feature Description
   featureDesc: {
     fontSize: 15,
     color: Colors.light.icon,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
   },
-  // Card Arrow - matching Home
+  // Card Arrow
   cardArrow: {
     position: 'absolute',
     right: 20,

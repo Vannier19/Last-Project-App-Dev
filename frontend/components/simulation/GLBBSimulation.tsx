@@ -11,27 +11,24 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { api } from '@/services/api';
 
-// ============================================
-// SIMULATION CONFIGURATION - Edit values here
-// ============================================
 const SIMULATION_CONFIG = {
-    // Initial velocity [m/s]
+    // Initial velocity
     INITIAL_VELOCITY: '0',
 
-    // Initial acceleration [m/s²]
+    // Initial acceleration
     INITIAL_ACCELERATION: '2',
 
     // Scale factors
     PIXEL_TO_METER: 1 / 20,
     METER_TO_PIXEL: 20,
 
-    // Car initial position (translateX value) - same as GLB
+    // Car initial position (translateX value)
     CAR_START_X: 25,
 
-    // Red vertical axis (Y-axis) position from left edge - same as GLB
+    // Red vertical axis (Y-axis) position from left edge
     RED_AXIS_LEFT: 75,
 
-    // Blue horizontal axis (X-axis) position from top (percentage) - same as GLB
+    // Blue horizontal axis (X-axis) position from top (percentage)
     BLUE_AXIS_TOP: '50%' as const,
 
     // Axis line colors

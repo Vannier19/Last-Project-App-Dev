@@ -9,24 +9,20 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
 
-
-// ============================================
-// SIMULATION CONFIGURATION - Edit values here
-// ============================================
 const SIMULATION_CONFIG = {
     // Scale: 1 meter = how many pixels
     PIXELS_PER_METER: 10,
 
-    // Maximum distance to display (in meters)
+    // Maximum distance to display
     MAX_DISTANCE: 100,
 
-    // Car initial position (translateX value)
+    // Car initial position
     CAR_START_X: 45,
 
     // Red vertical axis (Y-axis) position from left edge
     RED_AXIS_LEFT: 75,
 
-    // Blue horizontal axis (X-axis) position from top (percentage)
+    // Blue horizontal axis (X-axis) position from top
     BLUE_AXIS_TOP: '50%' as const,
 
     // Axis line colors
@@ -149,7 +145,6 @@ export function GLBSimulation() {
         };
     });
 
-    // Grid matching GLBB style - percentage-based positioning
     const gridColor = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
 
     const Grid = () => (

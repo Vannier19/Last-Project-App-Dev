@@ -11,17 +11,14 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 import { api } from '@/services/api';
 
-// ============================================
-// SIMULATION CONFIGURATION - Edit values here
-// ============================================
 const SIMULATION_CONFIG = {
-    // Initial velocity [m/s]
+    // Initial velocity
     INITIAL_VELOCITY: '20',
 
-    // Initial angle [degrees]
+    // Initial angle
     INITIAL_ANGLE: '45',
 
-    // Gravity [m/s²]
+    // Gravity
     GRAVITY: 9.8,
 
     // Scale: 1 meter = how many pixels
@@ -170,7 +167,7 @@ export function ProjectileMotionSimulation() {
         </View>
     );
 
-    // Start Position Indicator Lines (Red vertical at left, Blue horizontal at bottom)
+
     const StartPositionLines = () => (
         <>
             {/* Red vertical line (Y-axis at left edge) */}

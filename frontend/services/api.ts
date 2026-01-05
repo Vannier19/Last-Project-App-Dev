@@ -24,21 +24,36 @@ interface ApiResponse<T = any> {
 
 // Helper: Get Firebase ID token for authenticated requests
 // Helper: Get Firebase ID token for authenticated requests
+import { Platform } from 'react-native';
+
 async function getAuthToken(): Promise<string | null> {
   const user = auth.currentUser;
   if (user) return await user.getIdToken();
 
-  // If no user immediately available, wait for auth initialization (useful for page reloads on web)
-  return new Promise((resolve) => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      unsubscribe();
-      if (user) {
-        resolve(await user.getIdToken());
-      } else {
+  // On Web: Wait for auth state to resolve (fixes reload race condition)
+  if (Platform.OS === 'web') {
+    return new Promise((resolve) => {
+      // Add a timeout to prevent infinite hanging
+      const timeout = setTimeout(() => {
+        console.warn('⚠️ Auth token retrieval timed out on web');
         resolve(null);
-      }
+      }, 5000);
+
+      const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        clearTimeout(timeout);
+        unsubscribe();
+        if (user) {
+          resolve(await user.getIdToken());
+        } else {
+          resolve(null);
+        }
+      });
     });
-  });
+  }
+
+  // On Native: Return null immediately if no user (prevent startup crash due to async loops)
+  // Native persistence usually loads faster, or we can rely on standard auth listeners in UI
+  return null;
 }
 
 // Helper: Make authenticated API request

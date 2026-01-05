@@ -69,21 +69,35 @@ export const submitQuizScore = async (req: AuthRequest, res: Response) => {
         }
 
         const docRef = db.collection('progress').doc(uid);
+        const doc = await docRef.get();
 
-        // Simpan score (untuk backward compatibility)
-        // Dan detail lengkap hasil quiz
-        await docRef.set({
-            userId: uid,
+        // If document doesn't exist, create it first with base structure
+        if (!doc.exists) {
+            await docRef.set({
+                userId: uid,
+                completedMaterials: [],
+                quizScores: {},
+                quizResults: {},
+                labStatus: {},
+                labHistory: {},
+                lastUpdated: new Date()
+            });
+        }
+
+        // Use update() which properly handles dot notation as nested paths
+        const updateData: { [key: string]: any } = {
             [`quizScores.${quizId}`]: score,
             [`quizResults.${quizId}`]: {
                 score: score,
                 totalQuestions: totalQuestions || answers.length,
                 correctAnswers: correctAnswers || answers.filter((a: any) => a.isCorrect).length,
-                answers: answers, // Array detail per soal
+                answers: answers,
                 submittedAt: new Date()
             },
             lastUpdated: new Date()
-        }, { merge: true });
+        };
+
+        await docRef.update(updateData);
 
         return res.status(200).json({
             message: "Nilai kuis tersimpan!",
@@ -102,14 +116,27 @@ export const updateLabStatus = async (req: AuthRequest, res: Response) => {
     try {
         const db = admin.firestore();
         const uid = req.user?.uid;
-        const { labId, status, parameters } = req.body; // parameters: optional object with simulation data
+        const { labId, status, parameters } = req.body;
         if (!uid) return res.status(401).json({ message: "Unauthorized" });
 
         const docRef = db.collection('progress').doc(uid);
+        const doc = await docRef.get();
 
-        // Base update: always update status
-        const updateData: any = {
-            userId: uid,
+        // If document doesn't exist, create it first with base structure
+        if (!doc.exists) {
+            await docRef.set({
+                userId: uid,
+                completedMaterials: [],
+                quizScores: {},
+                quizResults: {},
+                labStatus: {},
+                labHistory: {},
+                lastUpdated: new Date()
+            });
+        }
+
+        // Now use update() which properly handles dot notation as nested paths
+        const updateData: { [key: string]: any } = {
             [`labStatus.${labId}`]: status,
             lastUpdated: new Date()
         };
@@ -120,14 +147,14 @@ export const updateLabStatus = async (req: AuthRequest, res: Response) => {
                 ...parameters,
                 completedAt: new Date()
             };
-            // Use arrayUnion to append to history
             updateData[`labHistory.${labId}`] = admin.firestore.FieldValue.arrayUnion(historyEntry);
         }
 
-        await docRef.set(updateData, { merge: true });
+        await docRef.update(updateData);
 
         return res.status(200).json({ message: "Status Lab diperbarui!" });
     } catch (error) {
+        console.error('Update lab status error:', error);
         return res.status(500).json({ error: "Gagal update lab" });
     }
 };

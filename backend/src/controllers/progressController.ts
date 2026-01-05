@@ -58,13 +58,13 @@ export const submitQuizScore = async (req: AuthRequest, res: Response) => {
         const db = admin.firestore();
         const uid = req.user?.uid;
         const { quizId, score, totalQuestions, correctAnswers, answers } = req.body;
-        
+
         if (!uid) return res.status(401).json({ message: "Unauthorized" });
 
         // Validasi input
         if (!quizId || score === undefined || !answers || !Array.isArray(answers)) {
-            return res.status(400).json({ 
-                error: "Data tidak lengkap. Kirim: quizId, score, totalQuestions, correctAnswers, answers[]" 
+            return res.status(400).json({
+                error: "Data tidak lengkap. Kirim: quizId, score, totalQuestions, correctAnswers, answers[]"
             });
         }
 
@@ -85,7 +85,7 @@ export const submitQuizScore = async (req: AuthRequest, res: Response) => {
             lastUpdated: new Date()
         }, { merge: true });
 
-        return res.status(200).json({ 
+        return res.status(200).json({
             message: "Nilai kuis tersimpan!",
             score: score,
             correctAnswers: correctAnswers || answers.filter((a: any) => a.isCorrect).length,
@@ -97,24 +97,38 @@ export const submitQuizScore = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// 4. POST: Update Status Lab
+// 4. POST: Update Status Lab (Extended with parameters for history)
 export const updateLabStatus = async (req: AuthRequest, res: Response) => {
     try {
         const db = admin.firestore();
         const uid = req.user?.uid;
-        const { labId, status } = req.body; // status: 'in-progress' | 'completed'
+        const { labId, status, parameters } = req.body; // parameters: optional object with simulation data
         if (!uid) return res.status(401).json({ message: "Unauthorized" });
 
         const docRef = db.collection('progress').doc(uid);
 
-        await docRef.set({
+        // Base update: always update status
+        const updateData: any = {
             userId: uid,
             [`labStatus.${labId}`]: status,
             lastUpdated: new Date()
-        }, { merge: true });
+        };
+
+        // If parameters provided, add to labHistory array
+        if (parameters && status === 'completed') {
+            const historyEntry = {
+                ...parameters,
+                completedAt: new Date()
+            };
+            // Use arrayUnion to append to history
+            updateData[`labHistory.${labId}`] = admin.firestore.FieldValue.arrayUnion(historyEntry);
+        }
+
+        await docRef.set(updateData, { merge: true });
 
         return res.status(200).json({ message: "Status Lab diperbarui!" });
     } catch (error) {
         return res.status(500).json({ error: "Gagal update lab" });
     }
 };
+

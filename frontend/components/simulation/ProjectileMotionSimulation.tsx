@@ -8,7 +8,8 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { api } from '@/services/api';
 
 // ============================================
 // SIMULATION CONFIGURATION - Edit values here
@@ -115,27 +116,21 @@ export function ProjectileMotionSimulation() {
     const handleFinish = async () => {
         setIsPlaying(false);
 
-        // Save simulation history to AsyncStorage
+        // Build simulation parameters for backend storage
+        const simulationParameters = {
+            initialVelocity: parseFloat(velocity) || 0,
+            angle: parseFloat(angle) || 0,
+            maxHeight: Math.max(0, posY.value),
+            distance: posX.value,
+            time: time.value,
+        };
+
+        // Save to Firestore with parameters
         try {
-            const historyRecord = {
-                type: 'parabola',
-                topic: 'Parabola',
-                parameters: {
-                    initialVelocity: parseFloat(velocity) || 0,
-                    angle: parseFloat(angle) || 0,
-                },
-                results: {
-                    maxHeight: Math.max(0, posY.value),
-                    distance: posX.value,
-                    time: time.value,
-                },
-                date: new Date().toISOString(),
-            };
-            const key = `lab_${Date.now()}`;
-            await AsyncStorage.setItem(key, JSON.stringify(historyRecord));
-            console.log('✅ Projectile Motion simulation history saved');
+            await api.updateLabStatus('parabola-lab', 'completed', simulationParameters);
+            console.log('✅ Projectile simulation saved to Firestore');
         } catch (error) {
-            console.log('Failed to save simulation history:', error);
+            console.log('Failed to save simulation to backend:', error);
         }
     };
 

@@ -8,7 +8,8 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { api } from '@/services/api';
 
 // ============================================
 // SIMULATION CONFIGURATION - Edit values here
@@ -118,27 +119,21 @@ export function GLBBSimulation() {
     const handleFinish = async () => {
         setIsPlaying(false);
 
-        // Save simulation history to AsyncStorage
+        // Build simulation parameters for backend storage
+        const simulationParameters = {
+            initialVelocity: parseFloat(velocity) || 0,
+            acceleration: parseFloat(acceleration) || 0,
+            finalVelocity: velX.value,
+            distance: posX.value,
+            time: time.value,
+        };
+
+        // Save to Firestore with parameters
         try {
-            const historyRecord = {
-                type: 'glbb',
-                topic: 'GLBB',
-                parameters: {
-                    initialVelocity: parseFloat(velocity) || 0,
-                    acceleration: parseFloat(acceleration) || 0,
-                },
-                results: {
-                    finalVelocity: velX.value,
-                    distance: posX.value,
-                    time: time.value,
-                },
-                date: new Date().toISOString(),
-            };
-            const key = `lab_${Date.now()}`;
-            await AsyncStorage.setItem(key, JSON.stringify(historyRecord));
-            console.log('✅ GLBB simulation history saved');
+            await api.updateLabStatus('glbb-lab', 'completed', simulationParameters);
+            console.log('✅ GLBB simulation saved to Firestore');
         } catch (error) {
-            console.log('Failed to save simulation history:', error);
+            console.log('Failed to save simulation to backend:', error);
         }
     };
 

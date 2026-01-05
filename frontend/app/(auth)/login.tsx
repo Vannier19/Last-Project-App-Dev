@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
@@ -11,8 +12,23 @@ import { Card } from '@/components/ui/Card';
 import { signIn, auth, GoogleAuthProvider, signInWithPopup, signInWithCredential } from '@/services/firebase';
 import api from '@/services/api';
 
-// Import Google Sign-In Native Library
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+// Check if running in Expo Go (where native modules are not available)
+const isExpoGo = Constants.appOwnership === 'expo';
+
+// Only import Google Sign-In if not in Expo Go
+let GoogleSignin: any = null;
+let statusCodes: any = null;
+
+// Try to load Google Sign-In module (will fail gracefully in Expo Go)
+try {
+    if (!isExpoGo && Platform.OS !== 'web') {
+        const googleSignIn = require('@react-native-google-signin/google-signin');
+        GoogleSignin = googleSignIn.GoogleSignin;
+        statusCodes = googleSignIn.statusCodes;
+    }
+} catch (e) {
+    console.log('Google Sign-In not available (running in Expo Go)');
+}
 
 export default function LoginScreen() {
     const colorScheme = useColorScheme();
@@ -28,9 +44,9 @@ export default function LoginScreen() {
     // Matches the ID in google-services.json (client_type: 3)
     const WEB_CLIENT_ID = '796874701938-i3g9ia6aoki6ravsa2qm018nmhatg6jg.apps.googleusercontent.com';
 
-    // Configure Google Sign-In
+    // Configure Google Sign-In (only if not in Expo Go)
     useEffect(() => {
-        if (Platform.OS !== 'web') {
+        if (Platform.OS !== 'web' && !isExpoGo && GoogleSignin) {
             GoogleSignin.configure({
                 webClientId: WEB_CLIENT_ID,
             });
@@ -190,18 +206,23 @@ export default function LoginScreen() {
                             style={{ marginTop: 16 }}
                         />
 
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
-                            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#444' : '#ccc' }} />
-                            <Text style={{ marginHorizontal: 10, color: isDark ? '#888' : '#666' }}>OR</Text>
-                            <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#444' : '#ccc' }} />
-                        </View>
+                        {/* Google Sign-In - hidden in Expo Go */}
+                        {(Platform.OS === 'web' || !isExpoGo) && (
+                            <>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 20 }}>
+                                    <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#444' : '#ccc' }} />
+                                    <Text style={{ marginHorizontal: 10, color: isDark ? '#888' : '#666' }}>OR</Text>
+                                    <View style={{ flex: 1, height: 1, backgroundColor: isDark ? '#444' : '#ccc' }} />
+                                </View>
 
-                        <Button
-                            title="Sign in with Google"
-                            onPress={handleGoogleSignIn}
-                            disabled={loading}
-                            style={{ backgroundColor: '#DB4437' }} // Google Red
-                        />
+                                <Button
+                                    title="Sign in with Google"
+                                    onPress={handleGoogleSignIn}
+                                    disabled={loading}
+                                    style={{ backgroundColor: '#DB4437' }}
+                                />
+                            </>
+                        )}
                     </Card>
 
                     <View style={styles.footer}>

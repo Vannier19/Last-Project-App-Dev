@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Card } from '@/components/ui/Card';
@@ -139,18 +138,22 @@ export default function QuizScreen() {
     const finishQuiz = async () => {
         setMode('result');
 
-        const finalScore = quizState.score + (selectedOption === quizData[quizState.topic][quizState.currentIndex].answer ? 1 : 0);
-        const total = quizData[quizState.topic].length;
-        const percentage = Math.round((finalScore / total) * 100);
+        // Calculate from answers array to be accurate
+        const questions = quizData[quizState.topic];
+        const newAnswers = [...quizState.answers];
+        newAnswers[quizState.currentIndex] = selectedOption;
+        const correctCount = questions.filter((q, i) => newAnswers[i] === q.answer).length;
+
+        const total = questions.length;
+        const percentage = Math.round((correctCount / total) * 100);
 
         // Build detailed answers array
-        const questions = quizData[quizState.topic];
         const detailedAnswers = questions.map((question, index) => ({
             questionNumber: index + 1,
             question: question.question,
-            userAnswer: quizState.answers[index] || 'Tidak dijawab',
+            userAnswer: newAnswers[index] || 'Tidak dijawab',
             correctAnswer: question.answer,
-            isCorrect: quizState.answers[index] === question.answer
+            isCorrect: newAnswers[index] === question.answer
         }));
 
         // Save to AsyncStorage (local backup)
@@ -158,7 +161,7 @@ export default function QuizScreen() {
             const key = `quiz_${quizState.topic}_${Date.now()}`;
             const scoreData = {
                 topic: quizState.topic,
-                score: finalScore,
+                score: correctCount,
                 total: total,
                 percentage: percentage,
                 answers: detailedAnswers,
@@ -175,7 +178,7 @@ export default function QuizScreen() {
                 materialId: quizState.topic,
                 score: percentage,
                 totalQuestions: total,
-                correctAnswers: finalScore,
+                correctAnswers: correctCount,
                 answers: detailedAnswers
             });
             console.log('✅ Quiz score with details saved to backend');
@@ -279,12 +282,14 @@ export default function QuizScreen() {
     };
 
     const renderResult = () => {
-        const total = quizData[quizState.topic].length;
-        const finalScore = quizState.score + (selectedOption === quizData[quizState.topic][quizState.currentIndex]?.answer ? 1 : 0);
-        const percentage = Math.round((finalScore / total) * 100);
+        const questions = quizData[quizState.topic];
+        const total = questions.length;
+        // Calculate correct count from answers
+        const correctCount = questions.filter((q, i) => quizState.answers[i] === q.answer).length;
+        const percentage = Math.round((correctCount / total) * 100);
 
         return (
-            <View style={styles.resultContainer}>
+            <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Card style={styles.resultCard}>
                     <IconSymbol
                         name={percentage >= 70 ? "checkmark.circle.fill" : "xmark.circle.fill"}
@@ -295,24 +300,58 @@ export default function QuizScreen() {
                         {percentage >= 70 ? 'Great Job!' : 'Keep Practicing!'}
                     </Text>
                     <Text style={[styles.resultScore, isDark && styles.textDark]}>
-                        {finalScore} / {total}
+                        {correctCount} / {total}
                     </Text>
                     <Text style={[styles.resultPercentage, isDark && styles.textSecondaryDark]}>
                         {percentage}% Correct
                     </Text>
                 </Card>
 
-                <Button title="Try Another Quiz" onPress={resetQuiz} style={{ marginTop: 24 }} />
-            </View>
+                {/* Answer Review Section */}
+                <Text style={[styles.sectionTitle, isDark && styles.textDark]}>Answer Review</Text>
+                {questions.map((q, index) => {
+                    const userAnswer = quizState.answers[index];
+                    const isCorrect = userAnswer === q.answer;
+                    return (
+                        <Card key={index} style={[styles.answerCard, isCorrect ? styles.answerCardCorrect : styles.answerCardWrong]}>
+                            <View style={styles.answerHeader}>
+                                <Text style={[styles.questionNumber, isDark && styles.textDark]}>Q{index + 1}</Text>
+                                <IconSymbol
+                                    name={isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill"}
+                                    size={24}
+                                    color={isCorrect ? '#48bb78' : '#f56565'}
+                                />
+                            </View>
+                            <Text style={[styles.questionText, isDark && styles.textDark]} numberOfLines={2}>
+                                {q.question}
+                            </Text>
+                            <View style={styles.answerDetails}>
+                                <Text style={[styles.answerLabel, isDark && styles.textSecondaryDark]}>Your answer:</Text>
+                                <Text style={[styles.answerValue, { color: isCorrect ? '#48bb78' : '#f56565' }]}>
+                                    {userAnswer || 'Not answered'}
+                                </Text>
+                            </View>
+                            {!isCorrect && (
+                                <View style={styles.answerDetails}>
+                                    <Text style={[styles.answerLabel, isDark && styles.textSecondaryDark]}>Correct answer:</Text>
+                                    <Text style={[styles.answerValue, { color: '#48bb78' }]}>{q.answer}</Text>
+                                </View>
+                            )}
+                        </Card>
+                    );
+                })}
+
+                <Button title="Try Another Quiz" onPress={resetQuiz} style={{ marginTop: 24, marginBottom: 40 }} />
+            </ScrollView>
         );
     };
 
     return (
-        <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+        <View style={[styles.container, isDark && styles.containerDark]}>
             {mode === 'selection' && renderTopicSelection()}
             {mode === 'active' && renderActiveQuiz()}
             {mode === 'result' && renderResult()}
-        </SafeAreaView>
+        </View>
     );
 }
 
@@ -546,5 +585,48 @@ const styles = StyleSheet.create({
         fontSize: 18,
         marginTop: 8,
         color: Colors.light.icon,
-    }
+    },
+    // Answer Review Styles
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: Colors.light.text,
+        marginTop: 24,
+        marginBottom: 16,
+    },
+    answerCard: {
+        marginBottom: 12,
+        borderLeftWidth: 4,
+    },
+    answerCardCorrect: {
+        borderLeftColor: '#48bb78',
+    },
+    answerCardWrong: {
+        borderLeftColor: '#f56565',
+    },
+    answerHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    questionNumber: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.light.tint,
+    },
+    answerDetails: {
+        flexDirection: 'row',
+        marginTop: 8,
+        gap: 8,
+    },
+    answerLabel: {
+        fontSize: 14,
+        color: Colors.light.icon,
+    },
+    answerValue: {
+        fontSize: 14,
+        fontWeight: '600',
+        flex: 1,
+    },
 });

@@ -12,6 +12,8 @@ const YoutubePlayer = Platform.OS !== 'web'
     ? require('react-native-youtube-iframe').default
     : null;
 
+import { api } from '@/services/api';
+
 type TopicKey = 'glb' | 'glbb' | 'vertikal' | 'parabola';
 
 interface TopicData {
@@ -102,11 +104,12 @@ const TopicCard = ({ data, isDark, isWide, onPress }: TopicCardProps) => (
 interface DetailModalProps {
     visible: boolean;
     data: TopicData | null;
+    topicKey: string | null;
     isDark: boolean;
     onClose: () => void;
 }
 
-const DetailModal = ({ visible, data, isDark, onClose }: DetailModalProps) => {
+const DetailModal = ({ visible, data, topicKey, isDark, onClose }: DetailModalProps) => {
     const { width } = useWindowDimensions();
     const [isPlaying, setIsPlaying] = useState(false);
 
@@ -122,6 +125,21 @@ const DetailModal = ({ visible, data, isDark, onClose }: DetailModalProps) => {
             setIsPlaying(false);
         }
     }, [visible]);
+
+    // Auto-complete material when opened
+    React.useEffect(() => {
+        const markComplete = async () => {
+            if (visible && topicKey) {
+                try {
+                    await api.completeMaterial(topicKey);
+                    console.log(`✅ Material marked as complete: ${topicKey}`);
+                } catch (error) {
+                    console.log('Failed to mark material complete (silent):', error);
+                }
+            }
+        };
+        markComplete();
+    }, [visible, topicKey]);
 
     if (!data) return null;
 
@@ -252,6 +270,7 @@ export default function MaterialsScreen() {
             <DetailModal
                 visible={selectedTopic !== null}
                 data={selectedTopic ? materialsData[selectedTopic] : null}
+                topicKey={selectedTopic}
                 isDark={isDark}
                 onClose={() => setSelectedTopic(null)}
             />

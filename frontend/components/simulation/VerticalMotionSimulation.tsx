@@ -8,7 +8,8 @@ import { Input } from '../ui/Input';
 import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { api } from '@/services/api';
 
 // ============================================
 // SIMULATION CONFIGURATION - Edit values here
@@ -96,25 +97,19 @@ export function VerticalMotionSimulation() {
     const handleFinish = async () => {
         setIsPlaying(false);
 
-        // Save simulation history to AsyncStorage
+        // Build simulation parameters for backend storage
+        const simulationParameters = {
+            initialVelocity: parseFloat(velocity) || 0,
+            maxHeight: posY.value,
+            time: time.value,
+        };
+
+        // Save to Firestore with parameters
         try {
-            const historyRecord = {
-                type: 'vertikal',
-                topic: 'Vertical',
-                parameters: {
-                    initialVelocity: parseFloat(velocity) || 0,
-                },
-                results: {
-                    maxHeight: posY.value,
-                    time: time.value,
-                },
-                date: new Date().toISOString(),
-            };
-            const key = `lab_${Date.now()}`;
-            await AsyncStorage.setItem(key, JSON.stringify(historyRecord));
-            console.log('✅ Vertical Motion simulation history saved');
+            await api.updateLabStatus('vertikal-lab', 'completed', simulationParameters);
+            console.log('✅ Vertical simulation saved to Firestore');
         } catch (error) {
-            console.log('Failed to save simulation history:', error);
+            console.log('Failed to save simulation to backend:', error);
         }
     };
 

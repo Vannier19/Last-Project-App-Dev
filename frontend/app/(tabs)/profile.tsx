@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, RefreshControl, Alert, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/theme';
 import { Card } from '@/components/ui/Card';
@@ -12,12 +11,21 @@ import { useRouter } from 'expo-router';
 import { auth, signOut, getCurrentUser, updateUserProfile, updateUserPassword } from '@/services/firebase';
 import { api } from '@/services/api';
 
+interface QuizAnswer {
+    questionNumber: number;
+    question: string;
+    userAnswer: string;
+    correctAnswer: string;
+    isCorrect: boolean;
+}
+
 interface QuizRecord {
     key: string;
     topic: string;
     score: number;
     total: number;
     date: string;
+    answers?: QuizAnswer[];
 }
 
 interface LabRecord {
@@ -48,6 +56,7 @@ export default function ProfileScreen() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [expandedQuiz, setExpandedQuiz] = useState<string | null>(null);
 
     useEffect(() => {
         const user = getCurrentUser();
@@ -58,46 +67,48 @@ export default function ProfileScreen() {
     }, []);
 
     const loadHistory = useCallback(async () => {
-        // Load quiz history from AsyncStorage
-        try {
-            const keys = await AsyncStorage.getAllKeys();
-            const quizKeys = keys.filter(k => k.startsWith('quiz_'));
-            const items = await AsyncStorage.multiGet(quizKeys);
-
-            const records: QuizRecord[] = items.map(([key, value]) => {
-                const data = value ? JSON.parse(value) : {};
-                return { key, ...data };
-            }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            setQuizHistory(records);
-        } catch (e) {
-            console.log('Failed to load quiz history', e);
-        }
-
-        // Load lab/simulation history from AsyncStorage
-        try {
-            const keys = await AsyncStorage.getAllKeys();
-            const labKeys = keys.filter(k => k.startsWith('lab_'));
-            const items = await AsyncStorage.multiGet(labKeys);
-
-            const records: LabRecord[] = items.map(([key, value]) => {
-                const data = value ? JSON.parse(value) : {};
-                return { key, ...data };
-            }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            setLabHistory(records);
-        } catch (e) {
-            console.log('Failed to load lab history', e);
-        }
-
-        // Also fetch from backend to get server-side progress
+        // Fetch all history from backend (Firestore)
         try {
             const response = await api.getProgress();
-            if (response.data?.quizScores) {
-                console.log('Backend progress:', response.data.quizScores);
+            const data = response.data;
+
+            // Process quiz results from Firestore
+            if (data?.quizResults) {
+                const quizRecords: QuizRecord[] = Object.entries(data.quizResults).map(([topic, result]: [string, any]) => ({
+                    key: `quiz_${topic}`,
+                    topic: topic,
+                    score: result.correctAnswers || 0,
+                    total: result.totalQuestions || 0,
+                    percentage: result.score || 0,
+                    answers: result.answers || [],
+                    date: result.submittedAt?.toDate?.()?.toISOString() || result.submittedAt || new Date().toISOString(),
+                }));
+                setQuizHistory(quizRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
             }
+
+            // Process lab history from Firestore
+            if (data?.labHistory) {
+                const labRecords: LabRecord[] = [];
+                Object.entries(data.labHistory).forEach(([labId, entries]: [string, any]) => {
+                    if (Array.isArray(entries)) {
+                        entries.forEach((entry: any, index: number) => {
+                            labRecords.push({
+                                key: `lab_${labId}_${index}`,
+                                type: labId.replace('-lab', ''),
+                                topic: labId.replace('-lab', '').toUpperCase(),
+                                parameters: entry,
+                                results: entry,
+                                date: entry.completedAt?.toDate?.()?.toISOString() || entry.completedAt || new Date().toISOString(),
+                            });
+                        });
+                    }
+                });
+                setLabHistory(labRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            }
+
+            console.log('✅ History loaded from Firestore');
         } catch (e) {
-            console.log('Failed to fetch backend progress (offline mode)', e);
+            console.log('Failed to fetch history from backend (offline mode):', e);
         }
     }, []);
 
@@ -192,7 +203,7 @@ export default function ProfileScreen() {
     };
 
     return (
-        <SafeAreaView style={[styles.container, isDark && styles.containerDark]}>
+        <View style={[styles.container, isDark && styles.containerDark]}>
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -363,25 +374,66 @@ export default function ProfileScreen() {
                         </Text>
                     </Card>
                 ) : (
-                    quizHistory.slice(0, 10).map((record, index) => (
-                        <Card key={record.key || index} style={styles.historyCard}>
-                            <View style={styles.historyRow}>
-                                <View>
-                                    <Text style={[styles.historyTopic, isDark && styles.textDark]}>
-                                        {getTopicLabel(record.topic)} Quiz
-                                    </Text>
-                                    <Text style={[styles.historyDate, isDark && styles.textSecondaryDark]}>
-                                        {formatDate(record.date)}
-                                    </Text>
-                                </View>
-                                <View style={styles.historyScore}>
-                                    <Text style={[styles.scoreText, { color: (record.score / record.total) >= 0.7 ? '#48bb78' : '#f56565' }]}>
-                                        {record.score}/{record.total}
-                                    </Text>
-                                </View>
-                            </View>
-                        </Card>
-                    ))
+                    quizHistory.slice(0, 10).map((record, index) => {
+                        const isExpanded = expandedQuiz === record.key;
+                        return (
+                            <TouchableOpacity
+                                key={record.key || index}
+                                onPress={() => setExpandedQuiz(isExpanded ? null : record.key)}
+                                activeOpacity={0.7}
+                            >
+                                <Card style={styles.historyCard}>
+                                    <View style={styles.historyRow}>
+                                        <View style={{ flex: 1 }}>
+                                            <Text style={[styles.historyTopic, isDark && styles.textDark]}>
+                                                {getTopicLabel(record.topic)} Quiz
+                                            </Text>
+                                            <Text style={[styles.historyDate, isDark && styles.textSecondaryDark]}>
+                                                {formatDate(record.date)}
+                                            </Text>
+                                        </View>
+                                        <View style={styles.historyScore}>
+                                            <Text style={[styles.scoreText, { color: (record.score / record.total) >= 0.7 ? '#48bb78' : '#f56565' }]}>
+                                                {record.score}/{record.total}
+                                            </Text>
+                                        </View>
+                                        <IconSymbol
+                                            name={isExpanded ? "chevron.up" : "chevron.down"}
+                                            size={20}
+                                            color={isDark ? '#888' : '#666'}
+                                        />
+                                    </View>
+                                    {/* Expanded Answer Details */}
+                                    {isExpanded && record.answers && (
+                                        <View style={styles.answersContainer}>
+                                            {record.answers.map((ans, i) => (
+                                                <View key={i} style={[styles.answerRow, ans.isCorrect ? styles.answerCorrect : styles.answerWrong]}>
+                                                    <View style={styles.answerLeft}>
+                                                        <Text style={[styles.answerQ, isDark && styles.textDark]}>Q{ans.questionNumber}</Text>
+                                                        <IconSymbol
+                                                            name={ans.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill"}
+                                                            size={18}
+                                                            color={ans.isCorrect ? '#48bb78' : '#f56565'}
+                                                        />
+                                                    </View>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={[styles.answerText, isDark && styles.textSecondaryDark]} numberOfLines={1}>
+                                                            {ans.question}
+                                                        </Text>
+                                                        {!ans.isCorrect && (
+                                                            <Text style={styles.correctAnswerText}>
+                                                                Correct: {ans.correctAnswer}
+                                                            </Text>
+                                                        )}
+                                                    </View>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
+                                </Card>
+                            </TouchableOpacity>
+                        );
+                    })
                 )}
 
                 {/* Lab History */}
@@ -426,7 +478,7 @@ export default function ProfileScreen() {
                     textStyle={{ color: '#FFFFFF' }}
                 />
             </ScrollView>
-        </SafeAreaView >
+        </View>
     );
 }
 
@@ -593,5 +645,49 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(99, 102, 241, 0.05)',
         marginHorizontal: -24,
         paddingHorizontal: 24,
+    },
+    // Answer Review Styles
+    answersContainer: {
+        marginTop: 16,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.08)',
+    },
+    answerRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingVertical: 8,
+        paddingHorizontal: 8,
+        marginBottom: 6,
+        borderRadius: 8,
+        borderLeftWidth: 3,
+    },
+    answerCorrect: {
+        backgroundColor: 'rgba(72, 187, 120, 0.08)',
+        borderLeftColor: '#48bb78',
+    },
+    answerWrong: {
+        backgroundColor: 'rgba(245, 101, 101, 0.08)',
+        borderLeftColor: '#f56565',
+    },
+    answerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        width: 50,
+    },
+    answerQ: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: Colors.light.tint,
+    },
+    answerText: {
+        fontSize: 13,
+        color: Colors.light.text,
+    },
+    correctAnswerText: {
+        fontSize: 12,
+        color: '#48bb78',
+        marginTop: 2,
     },
 });

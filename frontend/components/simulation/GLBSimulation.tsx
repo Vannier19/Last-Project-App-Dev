@@ -8,7 +8,7 @@ import { Card } from '../ui/Card';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { api } from '@/services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
 
 // ============================================
 // SIMULATION CONFIGURATION - Edit values here
@@ -91,40 +91,28 @@ export function GLBSimulation() {
         const newCompletedRuns = completedRuns + 1;
         setCompletedRuns(newCompletedRuns);
 
-        // Save simulation history to AsyncStorage
+        // Build simulation parameters for backend storage
+        const simulationParameters = {
+            velocity: parseFloat(velocity) || 10,
+            distance: currentPosition,
+            time: currentTime,
+        };
+
+        // Mark lab as completed with parameters (saved to Firestore)
         try {
-            const historyRecord = {
-                type: 'glb',
-                topic: 'GLB',
-                parameters: {
-                    velocity: parseFloat(velocity) || 10,
-                },
-                results: {
-                    distance: currentPosition,
-                    time: currentTime,
-                },
-                date: new Date().toISOString(),
-            };
-            const key = `lab_${Date.now()}`;
-            await AsyncStorage.setItem(key, JSON.stringify(historyRecord));
-            console.log('✅ GLB simulation history saved');
+            await api.updateLabStatus('glb-lab', 'completed', simulationParameters);
+            console.log('✅ GLB simulation saved to Firestore');
         } catch (error) {
-            console.log('Failed to save simulation history:', error);
+            console.log('Failed to save simulation to backend:', error);
         }
 
-        // After 3 successful runs, mark lab as completed
+        // After 3 successful runs, show completion alert
         if (newCompletedRuns >= 3) {
-            try {
-                await api.updateLabStatus('glb-lab', 'completed');
-                Alert.alert(
-                    'Lab Completed! 🎉',
-                    'You have successfully completed the GLB simulation lab.',
-                    [{ text: 'OK' }]
-                );
-                console.log('✅ GLB Lab marked as completed');
-            } catch (error) {
-                console.log('Failed to save lab completion:', error);
-            }
+            Alert.alert(
+                'Lab Completed! 🎉',
+                'You have successfully completed the GLB simulation lab.',
+                [{ text: 'OK' }]
+            );
         }
     };
 

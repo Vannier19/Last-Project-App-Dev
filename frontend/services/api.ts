@@ -182,12 +182,17 @@ class HybridApiService {
     }
   }
 
-  // Progress: Update lab status
-  async updateLabStatus(labId: string, status: 'in-progress' | 'completed'): Promise<ApiResponse> {
+  // Progress: Update lab status (with optional parameters for history)
+  async updateLabStatus(labId: string, status: 'in-progress' | 'completed', parameters?: Record<string, any>): Promise<ApiResponse> {
     try {
+      const body: any = { labId, status };
+      if (parameters) {
+        body.parameters = parameters;
+      }
+
       const response = await apiRequest('/api/progress/lab', {
         method: 'POST',
-        body: JSON.stringify({ labId, status }),
+        body: JSON.stringify(body),
       });
 
       return { message: 'Lab status updated', ...response };

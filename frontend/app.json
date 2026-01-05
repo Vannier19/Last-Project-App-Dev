@@ -54,11 +54,7 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "b62376b0-918d-487f-858a-f00e155f5493"
-      }
-    },
-    "owner": "kanata423341"
+      "router": {}
+    }
   }
 }
